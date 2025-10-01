@@ -57,6 +57,9 @@ go run xxx
 - login
 
 预计返回refreshToken和accessToken
+
+> refreshToken过期时间长, accessToken过期时间短. 当accessToken过期时, 使用refreshToken刷新. accessToken其它服务自行验证
+> 需要将refreshToken存起来, 之后刷新后删除再存一次
 - register
 - oauth/{provider}/authorize?redirect_url=xxx
 
@@ -67,10 +70,10 @@ go run xxx
 - refresh
 
 使用refreshToken刷新token. 
-redis会存储refreshToken:accessToken, refresh后删除该token对, 再生成一份
-- validate
 
-需要传入accessToken
+- logout
+
+删除refreshToken
 
 ### auth-sdk
 
@@ -78,4 +81,4 @@ redis会存储refreshToken:accessToken, refresh后删除该token对, 再生成�
 
 - authMiddleware
 
-认证中间件, 处理用户鉴权
+认证中间件, 所有的服务应该都使用这个中间件. 处理用户鉴权. 顺便将一些用户信息存到上下文里. 
