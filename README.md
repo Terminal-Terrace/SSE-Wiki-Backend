@@ -52,28 +52,7 @@ go run xxx
 
 ### auth-service
 
-鉴于软工集市登录复用的麻烦, 这里把认证服务单独抽出来了. 预计有这些接口:
-
-- login
-
-预计返回refreshToken和accessToken
-
-> refreshToken过期时间长, accessToken过期时间短. 当accessToken过期时, 使用refreshToken刷新. accessToken其它服务自行验证
-> 需要将refreshToken存起来, 之后刷新后删除再存一次
-- register
-- oauth/{provider}/authorize?redirect_url=xxx
-
-预计返回一个授权链接, 比如GitHub的, 那么跳到https://github.com/login/oauth/authorize?client_id=xxx&state=xxx, 在授权链接授权后, 重定向到xxx, 并在url里带上认证code, 前端需要把这个code发给后端
-- oauth/{provider}/callback
-
-预计接收code, 并通过这个code询问第三方平台, 最后返回登录结果
-- refresh
-
-使用refreshToken刷新token. 
-
-- logout
-
-删除refreshToken
+参见[飞书文档](https://mcn0xmurkm53.feishu.cn/docx/C4z7dMc0co932PxyyXkcPT1Fn5e)
 
 ### auth-sdk
 
