@@ -5,4 +5,5 @@ use (
     ./services/sse-wiki
     ./packages/auth-sdk
     ./packages/response
+    ./packages/database
 )
