@@ -7,7 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Handler(c *gin.Context) {
+type LoginHandler struct{}
+
+func (h *LoginHandler) handle(c *gin.Context) {
 	// 解析参数
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
