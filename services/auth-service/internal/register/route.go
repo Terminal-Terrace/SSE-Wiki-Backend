@@ -5,6 +5,9 @@ import (
 )
 
 func RegisterRoutes(r *gin.RouterGroup) {
-	h := &RegisterHandler{}
+	service := &RegisterService{}
+	h := &RegisterHandler{
+		service: service,
+	}
 	r.POST("/register", h.handle)
 }

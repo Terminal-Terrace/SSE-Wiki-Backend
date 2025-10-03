@@ -5,11 +5,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"os"
 	"terminal-terrace/auth-service/internal/login"
+	"terminal-terrace/auth-service/internal/register"
 )
 
 func initRoute(r *gin.Engine) {
 	authGroup := r.Group("/auth")
 	login.RegisterRoutes(authGroup)
+	register.RegisterRoutes(authGroup)
 }
 
 func SetupRouter() *gin.Engine {
