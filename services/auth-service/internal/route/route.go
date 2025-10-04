@@ -30,14 +30,20 @@ func initRoute(r *gin.Engine) {
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	origin := os.Getenv("FRONTEND_URL")
-	if origin == "" {
-		origin = "http://localhost:5173" // 默认值
+	// 允许多个前端端口
+	allowedOrigins := []string{
+		"http://localhost:3000",
+		"http://localhost:3001",
+	}
+
+	// 如果设置了环境变量，添加到允许列表
+	if envOrigin := os.Getenv("FRONTEND_URL"); envOrigin != "" {
+		allowedOrigins = append(allowedOrigins, envOrigin)
 	}
 
 	// 设置跨域请求
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{origin},
+		AllowOrigins: allowedOrigins,
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 	}))
