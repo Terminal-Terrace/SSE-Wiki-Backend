@@ -84,17 +84,17 @@ func Load(configPath string) error {
 
 		k = koanf.New(".")
 
-		// 加载配置文件
+		// 加载环境变量（会覆盖配置文件）
+		if err = k.Load(env.Provider("", ".", func(s string) string {
+			return strings.ReplaceAll(strings.ToLower(s), "_", ".")
+		}), nil); err != nil {
+			log.Printf("加载环境变量失败: %v", err)
+		}
+
+		// 加载配置文件, 项目的配置文件优先
 		if err = k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
 			err = fmt.Errorf("加载配置文件失败: %w", err)
 			return
-		}
-
-		// 加载环境变量（会覆盖配置文件）
-		if err = k.Load(env.Provider("", ".", func(s string) string {
-			return strings.Replace(strings.ToLower(s), "_", ".", -1)
-		}), nil); err != nil {
-			log.Printf("加载环境变量失败: %v", err)
 		}
 
 		// 解析到结构体

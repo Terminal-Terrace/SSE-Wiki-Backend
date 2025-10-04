@@ -45,6 +45,8 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		}
 	}
 
+	// TODO: 检查验证码
+
 	// 3. 密码加密
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {

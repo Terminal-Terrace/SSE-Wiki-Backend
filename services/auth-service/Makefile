@@ -5,5 +5,5 @@ install:
 	go mod tidy
 
 run:
-	@echo "运行sse-wiki服务"
+	@echo "运行auth-service服务"
 	go run cmd/server/main.go

@@ -3,6 +3,7 @@ package main
 import (
 	"terminal-terrace/auth-service/config"
 	"terminal-terrace/auth-service/internal/database"
+	"terminal-terrace/auth-service/internal/model"
 	"terminal-terrace/auth-service/internal/route"
 
 	_ "terminal-terrace/auth-service/docs" // Swagger 文档
@@ -31,6 +32,7 @@ import (
 func main() {
 	config.MustLoad("config.yaml")
 	database.InitDatabase()
+	model.InitTable(database.GetDB())
 	r := route.SetupRouter()
 
 	r.Run(":8081")
