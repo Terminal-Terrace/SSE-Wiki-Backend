@@ -19,6 +19,7 @@ const (
 	CodeLength = 6
 	// Redis Key 前缀
 	RedisKeyPrefix = "auth:code:"
+	from 		 = "SSE-Wiki <noreply@xxx.com>"
 )
 
 type CodeService struct {
@@ -74,7 +75,7 @@ func (s *CodeService) register(email string) *response.BusinessError {
 	}
 
 	// 4. 发送验证码邮件
-	if err := s.mailer.SendRegisterVerificationCode(email, code, CodeExpireMinutes); err != nil {
+	if err := s.mailer.SendRegisterVerificationCode(from, email, code, CodeExpireMinutes); err != nil {
 		return response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
 			response.WithErrorMessage("发送验证码邮件失败"),
@@ -104,7 +105,7 @@ func (s *CodeService) resetPassword(email string) *response.BusinessError {
 	}
 
 	// 4. 发送验证码邮件
-	if err := s.mailer.SendResetPasswordCode(email, code, CodeExpireMinutes); err != nil {
+	if err := s.mailer.SendResetPasswordCode(from, email, code, CodeExpireMinutes); err != nil {
 		return response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
 			response.WithErrorMessage("发送验证码邮件失败"),

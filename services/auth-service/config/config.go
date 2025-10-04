@@ -7,8 +7,8 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 	"terminal-terrace/email"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -30,7 +30,7 @@ type AppConfig struct {
 	Redis    RedisConfig    `koanf:"redis"`
 	Log      LogConfig      `koanf:"log"`
 	JWT      JWTConfig      `koanf:"jwt"`
-	Email    email.Config   `koanf:"email"`
+	Smtp     email.Config   `koanf:"smtp"`
 }
 
 type ServerConfig struct {
@@ -49,7 +49,7 @@ type DatabaseConfig struct {
 	Password     string `koanf:"password"`
 	Database     string `koanf:"database"`
 	SSLMode      bool   `koanf:"sslmode"`
-	LogLevel     string `koanf:"log_level"`    // 数据库日志级别
+	LogLevel     string `koanf:"log_level"` // 数据库日志级别
 	MaxOpenConns int    `koanf:"max_open_conns"`
 	MaxIdleConns int    `koanf:"max_idle_conns"`
 	MaxLifetime  int    `koanf:"max_lifetime"` // 秒
@@ -109,6 +109,8 @@ func Load(configPath string) error {
 		// 转换时间单位
 		Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
 		Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
+
+		fmt.Println(Conf.Smtp)
 	})
 
 	return err

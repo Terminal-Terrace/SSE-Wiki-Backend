@@ -8,7 +8,7 @@ import (
 )
 
 func RegisterRoutes(r *gin.RouterGroup) {
-	mailer := email.NewClient(&config.Conf.Email)
+	mailer := email.NewClient(&config.Conf.Smtp)
 
 	codeService := NewCodeService(mailer)
 
