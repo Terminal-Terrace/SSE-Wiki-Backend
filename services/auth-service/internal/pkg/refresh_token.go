@@ -42,23 +42,23 @@ func GenerateRefreshToken(userID int, username, email string) (string, error) {
 		"email":    email,
 	}
 
-	if err := database.RedisDB.HSet(ctx, key, tokenData); err != nil {
+	if err := database.RedisDB.HSet(ctx, key, tokenData).Err(); err != nil {
 		return "", fmt.Errorf("存储令牌失败: %w", err)
 	}
 
 	// 设置过期时间
-	if err := database.RedisDB.Expire(ctx, key, RefreshTokenExpiration); err != nil {
+	if err := database.RedisDB.Expire(ctx, key, RefreshTokenExpiration).Err(); err != nil {
 		return "", fmt.Errorf("设置令牌过期时间失败: %w", err)
 	}
 
 	// 将 token 添加到用户的 token 集合中（用于管理用户的所有 session）
 	userTokensKey := UserRefreshTokensPrefix + strconv.Itoa(userID)
-	if err := database.RedisDB.SAdd(ctx, userTokensKey, token); err != nil {
+	if err := database.RedisDB.SAdd(ctx, userTokensKey, token).Err(); err != nil {
 		return "", fmt.Errorf("添加到用户令牌集合失败: %w", err)
 	}
 
 	// 设置用户 token 集合的过期时间
-	if err := database.RedisDB.Expire(ctx, userTokensKey, RefreshTokenExpiration); err != nil {
+	if err := database.RedisDB.Expire(ctx, userTokensKey, RefreshTokenExpiration).Err(); err != nil {
 		return "", fmt.Errorf("设置用户令牌集合过期时间失败: %w", err)
 	}
 
@@ -108,12 +108,12 @@ func RevokeRefreshToken(token string) error {
 		if userIDStr, ok := tokenData["user_id"]; ok {
 			userID, _ := strconv.Atoi(userIDStr)
 			userTokensKey := UserRefreshTokensPrefix + strconv.Itoa(userID)
-			database.RedisDB.SRem(ctx, userTokensKey, token)
+			database.RedisDB.SRem(ctx, userTokensKey, token).Err()
 		}
 	}
 
 	// 删除令牌
-	if err := database.RedisDB.Del(ctx, key); err != nil {
+	if err := database.RedisDB.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("撤销令牌失败: %w", err)
 	}
 
@@ -134,11 +134,11 @@ func RevokeAllUserRefreshTokens(userID int) error {
 	// 删除所有 token
 	for _, token := range tokens {
 		key := RefreshTokenPrefix + token
-		database.RedisDB.Del(ctx, key)
+		database.RedisDB.Del(ctx, key).Err()
 	}
 
 	// 删除用户的 token 集合
-	if err := database.RedisDB.Del(ctx, userTokensKey); err != nil {
+	if err := database.RedisDB.Del(ctx, userTokensKey).Err(); err != nil {
 		return fmt.Errorf("删除用户令牌集合失败: %w", err)
 	}
 

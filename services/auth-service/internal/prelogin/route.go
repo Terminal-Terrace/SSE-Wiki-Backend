@@ -6,5 +6,5 @@ import (
 
 func RegisterRoutes(r *gin.RouterGroup) {
 	h := &PreLoginHandler{}
-	r.POST("/pre-login", h.handle)
+	r.POST("/prelogin", h.handle)
 }
