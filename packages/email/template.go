@@ -39,12 +39,12 @@ func (t *Template) Render(data interface{}) (string, error) {
 }
 
 // SendWithTemplate 使用模板发送邮件
-func (c *Client) SendWithTemplate(to string, subject string, tmpl *Template, data interface{}) error {
+func (c *Client) SendWithTemplate(from string, to string, subject string, tmpl *Template, data interface{}) error {
 	body, err := tmpl.Render(data)
 	if err != nil {
 		return err
 	}
-	return c.SendHTML(to, subject, body)
+	return c.SendHTML(from, to, subject, body)
 }
 
 // 预定义常用邮件模板
@@ -94,7 +94,7 @@ type VerificationCodeData struct {
 }
 
 // SendVerificationCode 发送验证码邮件（便捷方法）
-func (c *Client) SendVerificationCode(to string, code string, expireMinutes int) error {
+func (c *Client) SendVerificationCode(from string, to string, code string, expireMinutes int) error {
 	tmpl, err := NewTemplate(VerificationCodeTemplate)
 	if err != nil {
 		return err
@@ -107,7 +107,7 @@ func (c *Client) SendVerificationCode(to string, code string, expireMinutes int)
 		ExpireMinutes: expireMinutes,
 	}
 
-	return c.SendWithTemplate(to, "【SSE Wiki】邮箱验证码", tmpl, data)
+	return c.SendWithTemplate(from, to, "【SSE Wiki】邮箱验证码", tmpl, data)
 }
 
 // WelcomeTemplate 欢迎邮件模板
@@ -215,7 +215,7 @@ type RegisterVerificationData struct {
 }
 
 // SendRegisterVerificationCode 发送注册验证码邮件
-func (c *Client) SendRegisterVerificationCode(to string, code string, expireMinutes int) error {
+func (c *Client) SendRegisterVerificationCode(from string, to string, code string, expireMinutes int) error {
 	tmpl, err := NewTemplate(RegisterVerificationTemplate)
 	if err != nil {
 		return err
@@ -226,7 +226,7 @@ func (c *Client) SendRegisterVerificationCode(to string, code string, expireMinu
 		ExpireMinutes: expireMinutes,
 	}
 
-	return c.SendWithTemplate(to, "【SSE Wiki】注册验证码", tmpl, data)
+	return c.SendWithTemplate(from, to, "【SSE Wiki】注册验证码", tmpl, data)
 }
 
 // ResetPasswordTemplate 重置密码验证码邮件模板
@@ -298,7 +298,7 @@ type ResetPasswordData struct {
 }
 
 // SendResetPasswordCode 发送重置密码验证码邮件
-func (c *Client) SendResetPasswordCode(to string, code string, expireMinutes int) error {
+func (c *Client) SendResetPasswordCode(from string, to string, code string, expireMinutes int) error {
 	tmpl, err := NewTemplate(ResetPasswordTemplate)
 	if err != nil {
 		return err
@@ -309,5 +309,5 @@ func (c *Client) SendResetPasswordCode(to string, code string, expireMinutes int
 		ExpireMinutes: expireMinutes,
 	}
 
-	return c.SendWithTemplate(to, "【SSE Wiki】密码重置验证码", tmpl, data)
+	return c.SendWithTemplate(from, to, "【SSE Wiki】密码重置验证码", tmpl, data)
 }

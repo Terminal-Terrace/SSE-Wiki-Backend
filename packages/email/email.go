@@ -9,16 +9,16 @@ import (
 
 // Config 邮件服务配置
 type Config struct {
-	Host     string // SMTP 服务器地址，如 smtp.gmail.com
-	Port     int    // SMTP 端口，通常 587 (TLS) 或 465 (SSL)
-	Username string // 发件人邮箱
-	Password string // 邮箱密码或授权码
-	From     string // 发件人显示名称，如 "SSE Wiki <noreply@example.com>"
-	UseTLS   bool   // 是否使用 TLS，默认 true
+	Host     string `koanf:"host"`     // SMTP 服务器地址，如 smtp.gmail.com
+	Port     int    `koanf:"port"`     // SMTP 端口，通常 587 (TLS) 或 465 (SSL)
+	Username string `koanf:"username"` // 发件人邮箱
+	Password string `koanf:"password"` // 邮箱密码或授权码
+	UseTLS   bool   `koanf:"tls"`      // 是否使用 TLS，默认 true
 }
 
 // Message 邮件消息
 type Message struct {
+	From        string   // 发件人显示名称，如 "SSE Wiki <noreply@example.com>"
 	To          []string // 收件人列表
 	Cc          []string // 抄送列表
 	Bcc         []string // 密送列表
@@ -34,10 +34,7 @@ type Client struct {
 
 // NewClient 创建邮件客户端
 func NewClient(config *Config) *Client {
-	// 设置默认值
-	if config.From == "" {
-		config.From = config.Username
-	}
+	// 设置默认端口
 	if config.Port == 0 {
 		config.Port = 587
 	}
@@ -46,6 +43,9 @@ func NewClient(config *Config) *Client {
 
 // Send 发送邮件
 func (c *Client) Send(msg *Message) error {
+	if msg.From == "" {
+		return fmt.Errorf("发件人不能为空")
+	}
 	if len(msg.To) == 0 {
 		return fmt.Errorf("收件人不能为空")
 	}
@@ -60,7 +60,7 @@ func (c *Client) Send(msg *Message) error {
 
 	// 构建邮件内容
 	headers := make(map[string]string)
-	headers["From"] = c.config.From
+	headers["From"] = msg.From
 	headers["To"] = strings.Join(msg.To, ", ")
 	if len(msg.Cc) > 0 {
 		headers["Cc"] = strings.Join(msg.Cc, ", ")
@@ -87,14 +87,14 @@ func (c *Client) Send(msg *Message) error {
 
 	// 根据配置选择是否使用 TLS
 	if c.config.UseTLS || c.config.Port == 587 {
-		return c.sendWithTLS(addr, auth, recipients, []byte(message))
+		return c.sendWithTLS(addr, auth, msg.From, recipients, []byte(message))
 	}
 
-	return smtp.SendMail(addr, auth, c.config.From, recipients, []byte(message))
+	return smtp.SendMail(addr, auth, msg.From, recipients, []byte(message))
 }
 
 // sendWithTLS 使用 TLS 发送邮件
-func (c *Client) sendWithTLS(addr string, auth smtp.Auth, to []string, msg []byte) error {
+func (c *Client) sendWithTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
 	// 连接到 SMTP 服务器
 	client, err := smtp.Dial(addr)
 	if err != nil {
@@ -113,7 +113,7 @@ func (c *Client) sendWithTLS(addr string, auth smtp.Auth, to []string, msg []byt
 	}
 
 	// 设置发件人
-	if err = client.Mail(c.config.From); err != nil {
+	if err = client.Mail(from); err != nil {
 		return fmt.Errorf("设置发件人失败: %w", err)
 	}
 
@@ -144,8 +144,9 @@ func (c *Client) sendWithTLS(addr string, auth smtp.Auth, to []string, msg []byt
 }
 
 // SendSimple 发送简单文本邮件（便捷方法）
-func (c *Client) SendSimple(to string, subject string, body string) error {
+func (c *Client) SendSimple(from string, to string, subject string, body string) error {
 	return c.Send(&Message{
+		From:    from,
 		To:      []string{to},
 		Subject: subject,
 		Body:    body,
@@ -153,8 +154,9 @@ func (c *Client) SendSimple(to string, subject string, body string) error {
 }
 
 // SendHTML 发送 HTML 邮件（便捷方法）
-func (c *Client) SendHTML(to string, subject string, htmlBody string) error {
+func (c *Client) SendHTML(from string, to string, subject string, htmlBody string) error {
 	return c.Send(&Message{
+		From:        from,
 		To:          []string{to},
 		Subject:     subject,
 		Body:        htmlBody,
