@@ -9,6 +9,18 @@ import (
 
 type LoginHandler struct{}
 
+// Handle 用户登录
+// @Summary 用户登录
+// @Description 支持多种登录方式：SSE-Wiki 账号密码登录、GitHub OAuth、SSE-Market OAuth
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "登录请求"
+// @Success 200 {object} dto.Response{data=map[string]string} "登录成功，返回重定向 URL"
+// @Failure 400 {object} dto.Response "请求参数错误"
+// @Failure 401 {object} dto.Response "认证失败"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /auth/login [post]
 func (h *LoginHandler) handle(c *gin.Context) {
 	// 解析参数
 	var req LoginRequest

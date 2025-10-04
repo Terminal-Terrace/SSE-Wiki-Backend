@@ -36,14 +36,23 @@ func InitRedis(config *RedisConfig) (*RedisClient, error) {
 	setRedisDefaults(config)
 
 	// 创建 Redis 客户端
-	client := redis.NewClient(&redis.Options{
-		Addr:         fmt.Sprintf("%s:%d", config.Host, config.Port),
-		Password:     config.Password,
-		DB:           config.DB,
-		PoolSize:     config.PoolSize,
-		MinIdleConns: config.MinIdleConns,
+	options := &redis.Options{
+		Addr:            fmt.Sprintf("%s:%d", config.Host, config.Port),
+		DB:              config.DB,
+		PoolSize:        config.PoolSize,
+		MinIdleConns:    config.MinIdleConns,
 		ConnMaxLifetime: config.MaxConnAge,
-	})
+	}
+	
+	// 只有当密码不为空时才设置密码
+	if config.Password != "" {
+		log.Printf("[%s] 设置Redis密码", config.ServiceName)
+		options.Password = config.Password
+	} else {
+		log.Printf("[%s] Redis无密码连接", config.ServiceName)
+	}
+	
+	client := redis.NewClient(options)
 
 	// 测试连接
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

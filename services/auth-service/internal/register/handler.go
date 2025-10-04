@@ -11,6 +11,18 @@ type RegisterHandler struct {
 	service *RegisterService
 }
 
+// Handle 用户注册
+// @Summary 用户注册
+// @Description 注册新用户账号
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body RegisterRequest true "注册请求"
+// @Success 200 {object} dto.Response{data=map[string]string} "注册成功，返回重定向 URL"
+// @Failure 400 {object} dto.Response "请求参数错误"
+// @Failure 409 {object} dto.Response "用户名或邮箱已存在"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /auth/register [post]
 func (h *RegisterHandler) handle(c *gin.Context) {
 	// 解析参数
 	var req RegisterRequest

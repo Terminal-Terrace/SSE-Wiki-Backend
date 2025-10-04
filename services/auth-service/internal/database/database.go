@@ -44,12 +44,14 @@ func InitDatabase() {
 		panic(err)
 	}
 
+	// 初始化 Redis
 	RedisDB, err = database.InitRedis(
 		&database.RedisConfig{
-			Host:     redisConf.Host,
-			Port:     redisConf.Port,
-			Password: redisConf.Password,
-			DB:       redisConf.DB,
+			ServiceName: "auth-service",
+			Host:        redisConf.Host,
+			Port:        redisConf.Port,
+			Password:    redisConf.Password,
+			DB:          redisConf.DB,
 		},
 	)
 

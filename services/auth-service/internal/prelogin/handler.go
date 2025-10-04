@@ -10,6 +10,17 @@ import (
 
 type PreLoginHandler struct{}
 
+// Handle 预登录接口
+// @Summary 预登录
+// @Description 生成 OAuth state，用于后续登录流程的 CSRF 防护
+// @Tags 认证
+// @Accept json
+// @Produce json
+// @Param request body PreLoginRequest true "预登录请求"
+// @Success 200 {object} dto.Response{data=PreLoginResponse} "成功返回 state"
+// @Failure 400 {object} dto.Response "请求参数错误"
+// @Failure 500 {object} dto.Response "服务器内部错误"
+// @Router /auth/prelogin [post]
 func (h *PreLoginHandler) handle(c *gin.Context) {
 	// 解析参数
 	var req PreLoginRequest
