@@ -1,53 +1,43 @@
 package main
 
 import (
-	"log"
-	"time"
-
-	"terminal-terrace/database"
 	"terminal-terrace/template/config"
-	"terminal-terrace/template/internal/model"
+	"terminal-terrace/template/internal/database"
 	"terminal-terrace/template/internal/route"
+
+	_ "terminal-terrace/template/docs" // Swagger 文档
 )
+
+// @title Template Service API
+// @version 1.0
+// @description Template 服务 API 文档模板
+// @termsOfService https://github.com/Terminal-Terrace/SSE-Wiki-Backend
+
+// @contact.name API Support
+// @contact.url https://github.com/Terminal-Terrace/SSE-Wiki-Backend/issues
+// @contact.email support@example.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
+// @host localhost:8082
+// @BasePath /api/v1
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
 	// 1. 加载配置
-	if err := config.Load("config.yaml"); err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
+	config.MustLoad("config.yaml")
 
-	// 2. 初始化数据库连接
-	dbConfig := &database.PostgresConfig{
-		Username:        config.Conf.Database.Username,
-		Password:        config.Conf.Database.Password,
-		Host:            config.Conf.Database.Host,
-		Port:            config.Conf.Database.Port,
-		Database:        config.Conf.Database.Database,
-		SSLMode:         config.Conf.Database.SSLMode,
-		LogLevel:        config.Conf.Log.Level,
-		MaxIdleConns:    config.Conf.Database.MaxIdleConns,
-		MaxOpenConns:    config.Conf.Database.MaxOpenConns,
-		ConnMaxLifetime: time.Duration(config.Conf.Database.MaxLifetime) * time.Second,
-	}
+	// 2. 初始化数据库
+	database.InitDatabase()
 
-	db, err := database.InitPostgres(dbConfig)
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
+	// 3. 设置路由
+	r := route.SetupRouter()
 
-	// 3. 自动迁移数据库表
-	if err := model.InitTable(db); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
-	}
-
-	// 4. 初始化路由（传入数据库连接）
-	router := route.SetupRouter(db)
-
-	// 5. 启动服务器
-	addr := config.Conf.Server.Host + ":" + string(rune(config.Conf.Server.Port))
-	log.Printf("Server starting on %s", addr)
-
-	if err := router.Run(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	// 4. 启动服务
+	r.Run(":8082")
 }

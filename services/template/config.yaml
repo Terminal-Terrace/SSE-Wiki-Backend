@@ -1,43 +1,38 @@
 # Template Service 配置文件
-#
-# 配置优先级：环境变量 > config.yaml
-# 敏感信息（密码、密钥）应该使用环境变量，不要写在这里
-#
-# 环境变量命名规则：APP_SECTION_KEY
-# 例如：APP_DATABASE_PASSWORD 会覆盖 database.password
+# 敏感信息建议通过环境变量设置
 
 server:
   host: "localhost"
-  port: 8080              # 可被 APP_SERVER_PORT 覆盖
-  mode: "debug"           # debug, release
+  port: 8082
+  mode: "debug"
   read_timeout: 30
   write_timeout: 30
 
 database:
   driver: "postgres"
-  host: "localhost"       # 可被 DB_HOST 或 APP_DATABASE_HOST 覆盖
-  port: 5432              # 可被 DB_PORT 或 APP_DATABASE_PORT 覆盖
-  username: "postgres"    # 可被 DB_USERNAME 或 APP_DATABASE_USERNAME 覆盖
-  password: ""            # 留空，通过 DB_PASSWORD 环境变量提供
-  database: "template_db" # 可被 DB_TEMPLATE 环境变量覆盖
-  sslmode: false          # 可被 DB_SSLMODE 覆盖
+  host: "localhost"
+  port: 5432
+  username: "postgres"
+  password: ""              # 通过 DATABASE_PASSWORD 环境变量设置
+  database: "sse_wiki"      # 全局统一数据库名称
+  sslmode: false
+  log_level: "info"         # 数据库日志级别: silent, error, warn, info
   max_open_conns: 100
   max_idle_conns: 10
-  max_lifetime: 3600      # 秒
+  max_lifetime: 3600
 
 redis:
-  host: "localhost"       # 可被 REDIS_HOST 覆盖
-  port: 6379              # 可被 REDIS_PORT 覆盖
-  password: ""            # 留空，通过 REDIS_PASSWORD 环境变量提供
-  db: 0
+  host: "localhost"
+  port: 6379
+  password: ""              # 通过 REDIS_PASSWORD 环境变量设置
+  db: 2                     # 使用不同的 Redis 数据库
   pool_size: 10
 
 log:
-  level: "debug"          # 可被 LOG_LEVEL 覆盖，值：debug, info, warn, error
-  format: "text"          # json, text
-  output: "stdout"        # stdout, file
-  path: "./logs/template.log"
+  level: "debug"
+  format: "text"
+  output: "stdout"
 
 jwt:
-  secret: ""              # 留空，通过 JWT_SECRET 环境变量提供
-  expire_time: 24         # 小时，可被 JWT_EXPIRE_TIME 覆盖
+  secret: ""                # 通过 JWT_SECRET 环境变量设置
+  expire_time: 24
