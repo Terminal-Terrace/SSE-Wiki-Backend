@@ -3,6 +3,7 @@ package register
 import (
 	"regexp"
 
+	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/model/user"
 	"terminal-terrace/auth-service/internal/pkg"
@@ -45,9 +46,12 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		}
 	}
 
-	// TODO: 检查验证码
+	// 3. 检查验证码
+	if err := code.VerifyEmailCode(req.Email, code.CodeTypeRegister, req.Code); err != nil {
+		return RegisterResponse{}, err
+	}
 
-	// 3. 密码加密
+	// 4. 密码加密
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return RegisterResponse{}, response.NewBusinessError(
@@ -56,7 +60,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 4. 创建用户
+	// 5. 创建用户
 	newUser := user.User{
 		Username:     req.Username,
 		Email:        req.Email,
@@ -70,7 +74,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 5. 生成 refresh token
+	// 6. 生成 refresh token
 	refreshToken, err := pkg.GenerateRefreshToken(newUser.ID, newUser.Username, newUser.Email)
 	if err != nil {
 		return RegisterResponse{}, response.NewBusinessError(
@@ -79,7 +83,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 6. 返回结果
+	// 7. 返回结果
 	return RegisterResponse{
 		RefreshToken: refreshToken,
 		RedirectUrl:  "/",

@@ -8,6 +8,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/login"
 	"terminal-terrace/auth-service/internal/prelogin"
 	"terminal-terrace/auth-service/internal/register"
@@ -24,6 +25,7 @@ func initRoute(r *gin.Engine) {
 		prelogin.RegisterRoutes(authGroup)
 		login.RegisterRoutes(authGroup)
 		register.RegisterRoutes(authGroup)
+		code.RegisterRoutes(authGroup)
 	}
 }
 

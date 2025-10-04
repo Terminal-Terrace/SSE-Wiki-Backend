@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"terminal-terrace/email"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -29,6 +30,7 @@ type AppConfig struct {
 	Redis    RedisConfig    `koanf:"redis"`
 	Log      LogConfig      `koanf:"log"`
 	JWT      JWTConfig      `koanf:"jwt"`
+	Email    email.Config   `koanf:"email"`
 }
 
 type ServerConfig struct {
