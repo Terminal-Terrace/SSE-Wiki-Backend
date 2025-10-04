@@ -19,7 +19,7 @@ const (
 	CodeLength = 6
 	// Redis Key 前缀
 	RedisKeyPrefix = "auth:code:"
-	from 		 = "SSE-Wiki <noreply@xxx.com>"
+	from 		 = "wateringtop <wateringtop@qq.com>"
 )
 
 type CodeService struct {
@@ -76,6 +76,7 @@ func (s *CodeService) register(email string) *response.BusinessError {
 
 	// 4. 发送验证码邮件
 	if err := s.mailer.SendRegisterVerificationCode(from, email, code, CodeExpireMinutes); err != nil {
+		fmt.Println("Error sending email:", err)
 		return response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
 			response.WithErrorMessage("发送验证码邮件失败"),
@@ -116,6 +117,7 @@ func (s *CodeService) resetPassword(email string) *response.BusinessError {
 	return nil
 }
 
+// TODO: 需要一个中间件, 限制同一 IP 或同一邮箱发送验证码的频率, 防止滥用
 func (s *CodeService) SendCode(req SendCodeRequest) *response.BusinessError {
 	switch req.Type {
 	case CodeTypeRegister:

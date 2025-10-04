@@ -90,7 +90,24 @@ func (c *Client) Send(msg *Message) error {
 		return c.sendWithTLS(addr, auth, msg.From, recipients, []byte(message))
 	}
 
-	return smtp.SendMail(addr, auth, msg.From, recipients, []byte(message))
+	// 非 TLS 模式也需要提取纯邮箱地址
+	emailAddr := extractEmailAddress(msg.From)
+	return smtp.SendMail(addr, auth, emailAddr, recipients, []byte(message))
+}
+
+// extractEmailAddress 从 "Name <email@example.com>" 格式中提取纯邮箱地址
+func extractEmailAddress(from string) string {
+	// 查找 < 和 > 符号
+	start := strings.Index(from, "<")
+	end := strings.Index(from, ">")
+
+	if start != -1 && end != -1 && end > start {
+		// 提取 <> 之间的邮箱地址
+		return strings.TrimSpace(from[start+1 : end])
+	}
+
+	// 如果没有 <>，返回原始字符串（假设已经是纯邮箱）
+	return strings.TrimSpace(from)
 }
 
 // sendWithTLS 使用 TLS 发送邮件
@@ -112,8 +129,9 @@ func (c *Client) sendWithTLS(addr string, auth smtp.Auth, from string, to []stri
 		return fmt.Errorf("SMTP 认证失败: %w", err)
 	}
 
-	// 设置发件人
-	if err = client.Mail(from); err != nil {
+	// 设置发件人（需要提取纯邮箱地址）
+	emailAddr := extractEmailAddress(from)
+	if err = client.Mail(emailAddr); err != nil {
 		return fmt.Errorf("设置发件人失败: %w", err)
 	}
 
@@ -140,7 +158,10 @@ func (c *Client) sendWithTLS(addr string, auth smtp.Auth, from string, to []stri
 		return fmt.Errorf("关闭邮件内容写入失败: %w", err)
 	}
 
-	return client.Quit()
+	// 忽略 Quit 的错误，因为邮件已经发送成功
+	// 某些 SMTP 服务器（如 QQ 邮箱）可能返回非标准响应导致 "short response" 错误
+	client.Quit()
+	return nil
 }
 
 // SendSimple 发送简单文本邮件（便捷方法）
