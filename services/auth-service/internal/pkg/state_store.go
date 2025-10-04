@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"context"
 	"time"
 
 	"terminal-terrace/auth-service/internal/database"
@@ -15,16 +16,18 @@ const (
 
 // SaveStateWithRedirect 保存 state 和重定向地址到 Redis
 func SaveStateWithRedirect(state, redirectUrl string) error {
+	ctx := context.Background()
 	key := StatePrefix + state
 
-	return database.RedisDB.Set(key, redirectUrl, StateExpiration)
+	return database.RedisDB.Set(ctx, key, redirectUrl, StateExpiration).Err()
 }
 
 // GetRedirectByState 根据 state 获取重定向地址
 func GetRedirectByState(state string) (string, error) {
+	ctx := context.Background()
 	key := StatePrefix + state
 
-	redirectUrl, err := database.RedisDB.Get(key)
+	redirectUrl, err := database.RedisDB.Get(ctx, key).Result()
 	if err != nil {
 		return "", err
 	}
@@ -34,7 +37,8 @@ func GetRedirectByState(state string) (string, error) {
 
 // DeleteState 删除 state（使用后删除，防止重复使用）
 func DeleteState(state string) error {
+	ctx := context.Background()
 	key := StatePrefix + state
 
-	return database.RedisDB.Delete(key)
+	return database.RedisDB.Del(ctx, key).Err()
 }

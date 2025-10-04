@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -46,6 +47,7 @@ type DatabaseConfig struct {
 	Password     string `koanf:"password"`
 	Database     string `koanf:"database"`
 	SSLMode      bool   `koanf:"sslmode"`
+	LogLevel     string `koanf:"log_level"`    // 数据库日志级别
 	MaxOpenConns int    `koanf:"max_open_conns"`
 	MaxIdleConns int    `koanf:"max_idle_conns"`
 	MaxLifetime  int    `koanf:"max_lifetime"` // 秒
@@ -75,6 +77,11 @@ type JWTConfig struct {
 func Load(configPath string) error {
 	var err error
 	once.Do(func() {
+		// 首先加载 .env 文件到环境变量
+		if err = godotenv.Load("../../.env"); err != nil {
+			log.Printf("警告: 无法加载 .env 文件: %v", err)
+		}
+
 		k = koanf.New(".")
 
 		// 加载配置文件
@@ -84,9 +91,8 @@ func Load(configPath string) error {
 		}
 
 		// 加载环境变量（会覆盖配置文件）
-		if err = k.Load(env.Provider("APP_", ".", func(s string) string {
-			return strings.Replace(strings.ToLower(
-				strings.TrimPrefix(s, "APP_")), "_", ".", -1)
+		if err = k.Load(env.Provider("", ".", func(s string) string {
+			return strings.Replace(strings.ToLower(s), "_", ".", -1)
 		}), nil); err != nil {
 			log.Printf("加载环境变量失败: %v", err)
 		}

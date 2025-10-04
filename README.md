@@ -1,5 +1,23 @@
 # go大仓
 
+## 项目结构
+
+```
+SSE-Wiki-Backend/
+├── services/              # 微服务目录
+│   ├── sse-wiki/          # SSE Wiki 主服务
+│   ├── auth-service/      # 认证服务
+│   └── template/          # 服务模板（参考标准）
+├── packages/              # 共享包目录
+│   ├── database/          # 统一数据库连接管理
+│   ├── response/          # 统一响应格式
+│   └── auth-sdk/          # 认证 SDK
+├── .env.example           # 环境变量模板
+├── go.work                # Go Workspace 配置
+├── Makefile               # 构建脚本
+└── README.md              # 本文件
+```
+
 ## 文件结构
 
 一个包的结构大概这样:
@@ -13,21 +31,29 @@
 
 service最好不要导出东西, 导入package里的就可以了. 
 
-## 运行
+## 快速开始
+
+### 环境
+
+待补充各软件版本
+
+### 配置
+
+`.env.example` 为环境变量模板，需要配置拷贝并命名为`.env`，完成内部相关配置
+
+### 运行
 
 在子包运行
 
 ```sh
 make install
-```
-
-```sh
 make run
 ```
 
 或者在根目录运行
 
 调用子包的`make install`
+
 ```sh
 make install 子包名
 ```
@@ -42,9 +68,6 @@ make run 子包名
 
 ```sh
 go mod tidy
-```
-
-```sh
 go run xxx
 ```
 

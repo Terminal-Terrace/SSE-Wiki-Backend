@@ -71,7 +71,7 @@ func ValidateRefreshToken(token string) (userID int, username, email string, err
 	key := RefreshTokenPrefix + token
 
 	// 从 Redis 获取令牌信息
-	tokenData, err := database.RedisDB.HGetAll(ctx, key)
+	tokenData, err := database.RedisDB.HGetAll(ctx, key).Result()
 	if err != nil {
 		return 0, "", "", fmt.Errorf("获取令牌信息失败: %w", err)
 	}
@@ -103,7 +103,7 @@ func RevokeRefreshToken(token string) error {
 	key := RefreshTokenPrefix + token
 
 	// 先获取用户 ID，以便从用户的 token 集合中删除
-	tokenData, err := database.RedisDB.HGetAll(ctx, key)
+	tokenData, err := database.RedisDB.HGetAll(ctx, key).Result()
 	if err == nil && len(tokenData) > 0 {
 		if userIDStr, ok := tokenData["user_id"]; ok {
 			userID, _ := strconv.Atoi(userIDStr)
@@ -126,7 +126,7 @@ func RevokeAllUserRefreshTokens(userID int) error {
 	userTokensKey := UserRefreshTokensPrefix + strconv.Itoa(userID)
 
 	// 获取用户的所有 token
-	tokens, err := database.RedisDB.SMembers(ctx, userTokensKey)
+	tokens, err := database.RedisDB.SMembers(ctx, userTokensKey).Result()
 	if err != nil {
 		return fmt.Errorf("获取用户令牌列表失败: %w", err)
 	}
@@ -150,7 +150,7 @@ func GetUserActiveSessions(userID int) (int, error) {
 	ctx := context.Background()
 	userTokensKey := UserRefreshTokensPrefix + strconv.Itoa(userID)
 
-	count, err := database.RedisDB.SCard(ctx, userTokensKey)
+	count, err := database.RedisDB.SCard(ctx, userTokensKey).Result()
 	if err != nil {
 		return 0, fmt.Errorf("获取活跃会话数失败: %w", err)
 	}
