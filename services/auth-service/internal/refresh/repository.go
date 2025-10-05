@@ -34,6 +34,7 @@ type TokenData struct {
 	UserID   int
 	Username string
 	Email    string
+	Role     string
 }
 
 // Create 创建刷新令牌并存储到 Redis
@@ -41,11 +42,12 @@ func (r *RefreshTokenRepository) Create(token string, data TokenData) error {
 	ctx := context.Background()
 	key := RefreshTokenPrefix + token
 
-	// 存储令牌信息：userID, username, email
+	// 存储令牌信息：userID, username, email, role
 	tokenData := map[string]interface{}{
 		"user_id":  data.UserID,
 		"username": data.Username,
 		"email":    data.Email,
+		"role":     data.Role,
 	}
 
 	if err := r.redis.HSet(ctx, key, tokenData).Err(); err != nil {
@@ -101,6 +103,7 @@ func (r *RefreshTokenRepository) Get(token string) (*TokenData, error) {
 		UserID:   userID,
 		Username: tokenData["username"],
 		Email:    tokenData["email"],
+		Role:     tokenData["role"],
 	}, nil
 }
 

@@ -42,7 +42,7 @@ func (s *RefreshTokenService) RefreshToken(req RefreshTokenRequest) (*refreshTok
 	}
 
 	// 3. 生成新的 access token
-	accessToken, err := pkg.GenerateAccessToken(tokenData.UserID, tokenData.Username, tokenData.Email)
+	accessToken, err := pkg.GenerateAccessToken(tokenData.UserID, tokenData.Username, tokenData.Email, tokenData.Role)
 	if err != nil {
 		return nil, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),

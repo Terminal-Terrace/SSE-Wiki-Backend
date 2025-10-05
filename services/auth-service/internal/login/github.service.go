@@ -93,6 +93,7 @@ func (s *GithubLoginService) Login(req LoginRequest) (LoginResponse, *response.B
 		UserID:   foundUser.ID,
 		Username: username,
 		Email:    foundUser.Email,
+		Role:     foundUser.Role,
 	}
 	if err := s.getRefreshTokenRepo().Create(token, tokenData); err != nil {
 		return LoginResponse{}, response.NewBusinessError(
