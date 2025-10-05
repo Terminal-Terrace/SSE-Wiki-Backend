@@ -8,12 +8,26 @@ const (
 	ParseError ResponseCode = 1
 	// 参数错误
 	InvalidParameter ResponseCode = 2
+	// 未授权
+	Unauthorized ResponseCode = 401
+	// 禁止访问
+	Forbidden ResponseCode = 403
+	// 未找到
+	NotFound ResponseCode = 404
 )
 
 type BusinessError struct {
 	Code  ResponseCode
 	Msg   string
 	Err   error
+}
+
+// Error 实现 error 接口
+func (e *BusinessError) Error() string {
+	if e.Err != nil {
+		return e.Msg + ": " + e.Err.Error()
+	}
+	return e.Msg
 }
 
 type ErrorOption func(*BusinessError)

@@ -27,23 +27,24 @@ func Load(configPath string) error {
 	var err error
 	once.Do(func() {
 		// 首先加载 .env 文件到环境变量
-		if err = godotenv.Load("../../.env"); err != nil {
+		envPath := "../../.env"
+		if err = godotenv.Load(envPath); err != nil {
 			log.Printf("警告: 无法加载 .env 文件: %v", err)
 		}
 
 		k = koanf.New(".")
 
-		// 加载环境变量（会覆盖配置文件）
+		// 先加载配置文件
+		if err = k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
+			err = fmt.Errorf("加载配置文件失败: %w", err)
+			return
+		}
+
+		// 再加载环境变量（覆盖配置文件）
 		if err = k.Load(env.Provider("", ".", func(s string) string {
 			return strings.ReplaceAll(strings.ToLower(s), "_", ".")
 		}), nil); err != nil {
 			log.Printf("加载环境变量失败: %v", err)
-		}
-
-		// 加载配置文件, 项目的配置文件优先
-		if err = k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
-			err = fmt.Errorf("加载配置文件失败: %w", err)
-			return
 		}
 
 		// 解析到结构体
