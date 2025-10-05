@@ -7,6 +7,7 @@ import (
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/model/user"
 	"terminal-terrace/auth-service/internal/pkg"
+	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/response"
 
 	"golang.org/x/crypto/bcrypt"
@@ -20,7 +21,15 @@ var (
 	digitRegex    = regexp.MustCompile(`[0-9]`)
 )
 
-type RegisterService struct{}
+type RegisterService struct {
+	refreshTokenRepo *refresh.RefreshTokenRepository
+}
+
+func NewRegisterService(refreshTokenRepo *refresh.RefreshTokenRepository) *RegisterService {
+	return &RegisterService{
+		refreshTokenRepo: refreshTokenRepo,
+	}
+}
 
 // 只支持账号密码注册
 func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *response.BusinessError) {
@@ -75,7 +84,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 	}
 
 	// 6. 生成 refresh token
-	refreshToken, err := pkg.GenerateRefreshToken(newUser.ID, newUser.Username, newUser.Email)
+	token, err := pkg.GenerateRandomToken()
 	if err != nil {
 		return RegisterResponse{}, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
@@ -83,9 +92,22 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 7. 返回结果
+	// 7. 存储 refresh token
+	tokenData := refresh.TokenData{
+		UserID:   newUser.ID,
+		Username: newUser.Username,
+		Email:    newUser.Email,
+	}
+	if err := s.refreshTokenRepo.Create(token, tokenData); err != nil {
+		return RegisterResponse{}, response.NewBusinessError(
+			response.WithErrorCode(response.Fail),
+			response.WithErrorMessage("存储刷新令牌失败"),
+		)
+	}
+
+	// 8. 返回结果
 	return RegisterResponse{
-		RefreshToken: refreshToken,
+		RefreshToken: token,
 		RedirectUrl:  "/",
 	}, nil
 }

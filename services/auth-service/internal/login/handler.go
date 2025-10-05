@@ -44,7 +44,6 @@ func (h *LoginHandler) handle(c *gin.Context) {
 	// TODO: 配置cookie
 	c.SetCookie("refresh_token", result.RefreshToken, 3600*24*7, "/", "", false, true)
 	dto.SuccessResponse(c, gin.H{
-		"refresh_token": result.RefreshToken,
 		"redirect_url":  result.RedirectUrl,
 	})
 }
