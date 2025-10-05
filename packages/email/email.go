@@ -13,6 +13,7 @@ type Config struct {
 	Port     int    `koanf:"port"`     // SMTP 端口，通常 587 (TLS) 或 465 (SSL)
 	Username string `koanf:"username"` // 发件人邮箱
 	Password string `koanf:"password"` // 邮箱密码或授权码
+	From     string `koanf:"from"`     // 发件人显示名称，如 "SSE Wiki <noreply@example.com>"
 	UseTLS   bool   `koanf:"tls"`      // 是否使用 TLS，默认 true
 }
 
@@ -165,9 +166,9 @@ func (c *Client) sendWithTLS(addr string, auth smtp.Auth, from string, to []stri
 }
 
 // SendSimple 发送简单文本邮件（便捷方法）
-func (c *Client) SendSimple(from string, to string, subject string, body string) error {
+func (c *Client) SendSimple(to string, subject string, body string) error {
 	return c.Send(&Message{
-		From:    from,
+		From:    c.config.From,
 		To:      []string{to},
 		Subject: subject,
 		Body:    body,
@@ -175,9 +176,9 @@ func (c *Client) SendSimple(from string, to string, subject string, body string)
 }
 
 // SendHTML 发送 HTML 邮件（便捷方法）
-func (c *Client) SendHTML(from string, to string, subject string, htmlBody string) error {
+func (c *Client) SendHTML(to string, subject string, htmlBody string) error {
 	return c.Send(&Message{
-		From:        from,
+		From:        c.config.From,
 		To:          []string{to},
 		Subject:     subject,
 		Body:        htmlBody,

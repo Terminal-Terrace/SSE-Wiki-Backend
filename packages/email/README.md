@@ -96,6 +96,7 @@ err = client.SendWithTemplate(
 
 ```go
 err := client.Send(&email.Message{
+    From:    "SSE Wiki <your-email@gmail.com>", // 可选，未设置时使用配置中的 From
     To:      []string{"user1@example.com", "user2@example.com"},
     Cc:      []string{"manager@example.com"},
     Subject: "团队通知",
@@ -113,7 +114,7 @@ type Config struct {
     Port     int    // SMTP 端口（默认 587）
     Username string // 发件人邮箱
     Password string // 邮箱密码或授权码
-    From     string // 发件人显示名称（默认使用 Username）
+    From     string // 发件人显示名称，如 "SSE Wiki <your-email@gmail.com>"
     UseTLS   bool   // 是否使用 TLS（默认 true）
 }
 ```
