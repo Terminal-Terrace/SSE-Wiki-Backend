@@ -41,7 +41,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 	// 2. 检查用户名和邮箱是否已存在
 	var existingUser user.User
 	if err := database.PostgresDB.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser).Error; err == nil {
-		if existingUser.Username == req.Username {
+		if existingUser.Username != nil && *existingUser.Username == req.Username {
 			return RegisterResponse{}, response.NewBusinessError(
 				response.WithErrorCode(response.Fail),
 				response.WithErrorMessage("用户名已存在"),
@@ -70,8 +70,9 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 	}
 
 	// 5. 创建用户
+	username := req.Username
 	newUser := user.User{
-		Username:     req.Username,
+		Username:     &username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 	}
@@ -95,7 +96,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 	// 7. 存储 refresh token
 	tokenData := refresh.TokenData{
 		UserID:   newUser.ID,
-		Username: newUser.Username,
+		Username: *newUser.Username,
 		Email:    newUser.Email,
 	}
 	if err := s.refreshTokenRepo.Create(token, tokenData); err != nil {

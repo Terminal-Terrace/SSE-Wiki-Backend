@@ -77,9 +77,13 @@ func (s *SSEWikiLoginService) Login(req LoginRequest) (LoginResponse, *response.
 	}
 
 	// 6. 存储 refresh token
+	username := ""
+	if foundUser.Username != nil {
+		username = *foundUser.Username
+	}
 	tokenData := refresh.TokenData{
 		UserID:   foundUser.ID,
-		Username: foundUser.Username,
+		Username: username,
 		Email:    foundUser.Email,
 	}
 	if err := s.getRefreshTokenRepo().Create(token, tokenData); err != nil {
