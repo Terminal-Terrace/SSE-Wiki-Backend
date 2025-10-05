@@ -10,6 +10,8 @@ import (
 
 	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/login"
+	"terminal-terrace/auth-service/internal/logout"
+	"terminal-terrace/auth-service/internal/me"
 	"terminal-terrace/auth-service/internal/prelogin"
 	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/auth-service/internal/register"
@@ -28,6 +30,8 @@ func initRoute(r *gin.Engine) {
 		register.RegisterRoutes(authGroup)
 		code.RegisterRoutes(authGroup)
 		refresh.RegisterRoutes(authGroup)
+		me.RegisterRoutes(authGroup)
+		logout.RegisterRoutes(authGroup)
 	}
 }
 
@@ -47,9 +51,10 @@ func SetupRouter() *gin.Engine {
 
 	// 设置跨域请求
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: allowedOrigins,
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowOrigins:     allowedOrigins,
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true, // 允许携带 cookie
 	}))
 
 	initRoute(r)
