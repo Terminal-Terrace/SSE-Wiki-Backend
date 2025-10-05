@@ -231,10 +231,27 @@ func (h *ModuleHandler) GetModerators(c *gin.Context) {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	userRole, _ := c.Get("user_role")
+	userIDVal, userIDExists := c.Get("user_id")
+	userRoleVal, userRoleExists := c.Get("user_role")
+	if !userIDExists || !userRoleExists {
+		dto.ErrorResponse(c, response.NewBusinessError(
+			response.WithErrorCode(response.AuthError),
+			response.WithErrorMessage("未认证或用户信息缺失"),
+		))
+		return
+	}
 
-	moderators, err := h.moduleService.GetModerators(uint(id), userID.(uint), userRole.(string))
+	userID, ok := userIDVal.(uint)
+	userRole, ok2 := userRoleVal.(string)
+	if !ok || !ok2 {
+		dto.ErrorResponse(c, response.NewBusinessError(
+			response.WithErrorCode(response.AuthError),
+			response.WithErrorMessage("用户信息类型错误"),
+		))
+		return
+	}
+
+	moderators, err := h.moduleService.GetModerators(uint(id), userID, userRole)
 	if err != nil {
 		dto.ErrorResponse(c, err.(*response.BusinessError))
 		return
