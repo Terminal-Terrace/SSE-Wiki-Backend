@@ -76,11 +76,20 @@ func (s *SSEWikiLoginService) Login(req LoginRequest) (LoginResponse, *response.
 		)
 	}
 
-	// 6. 存储 refresh token
+	// 6. 生成 access token (JWT)
 	username := ""
 	if foundUser.Username != nil {
 		username = *foundUser.Username
 	}
+	accessToken, err := pkg.GenerateAccessToken(foundUser.ID, username, foundUser.Email, foundUser.Role)
+	if err != nil {
+		return LoginResponse{}, response.NewBusinessError(
+			response.WithErrorCode(response.Fail),
+			response.WithErrorMessage("生成访问令牌失败"),
+		)
+	}
+
+	// 7. 存储 refresh token
 	tokenData := refresh.TokenData{
 		UserID:   foundUser.ID,
 		Username: username,
@@ -94,11 +103,12 @@ func (s *SSEWikiLoginService) Login(req LoginRequest) (LoginResponse, *response.
 		)
 	}
 
-	// 7. 删除已使用的 state（防止重复使用）
+	// 8. 删除已使用的 state（防止重复使用）
 	pkg.DeleteState(req.State)
 
-	// 8. 返回结果
+	// 9. 返回结果
 	return LoginResponse{
+		AccessToken:  accessToken,
 		RefreshToken: token,
 		RedirectUrl:  redirectUrl,
 	}, nil

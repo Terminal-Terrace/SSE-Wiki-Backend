@@ -40,10 +40,14 @@ func (h *LoginHandler) handle(c *gin.Context) {
 		return
 	}
 
-	// setCookie
-	// TODO: 配置cookie
+	// 设置 access_token 和 refresh_token 到 Cookie（HttpOnly + Secure）
+	// access_token: 15分钟有效期
+	c.SetCookie("access_token", result.AccessToken, 15*60, "/", "", false, true)
+	// refresh_token: 7天有效期
 	c.SetCookie("refresh_token", result.RefreshToken, 3600*24*7, "/", "", false, true)
+
+	// 响应体只返回 redirect_url
 	dto.SuccessResponse(c, gin.H{
-		"redirect_url":  result.RedirectUrl,
+		"redirect_url": result.RedirectUrl,
 	})
 }
