@@ -29,12 +29,10 @@ func NewModuleHandler() *ModuleHandler {
 // @Success 200 {object} response.Response{data=[]ModuleTreeNode}
 // @Router /modules [get]
 func (h *ModuleHandler) GetModuleTree(c *gin.Context) {
-	// 从上下文获取用户信息（由认证中间件设置）
-	userID, exists := c.Get("user_id")
-	uid, ok := userID.(uint)
-	if !exists || !ok {
-		dto.ErrorResponse(c, response.NewBusinessError("未认证用户", response.Unauthorized))
-		return
+	// 从上下文获取用户信息（可选认证，可能为 nil）
+	var uid uint = 0
+	if userID, exists := c.Get("user_id"); exists && userID != nil {
+		uid = userID.(uint)
 	}
 
 	tree, err := h.moduleService.GetModuleTree(uid)
@@ -231,27 +229,17 @@ func (h *ModuleHandler) GetModerators(c *gin.Context) {
 		return
 	}
 
-	userIDVal, userIDExists := c.Get("user_id")
-	userRoleVal, userRoleExists := c.Get("user_role")
-	if !userIDExists || !userRoleExists {
-		dto.ErrorResponse(c, response.NewBusinessError(
-			response.WithErrorCode(response.AuthError),
-			response.WithErrorMessage("未认证或用户信息缺失"),
-		))
-		return
+	// 从上下文获取用户信息（可选认证，可能为 nil）
+	var uid uint = 0
+	var role string = ""
+	if userID, exists := c.Get("user_id"); exists && userID != nil {
+		uid = userID.(uint)
+	}
+	if userRole, exists := c.Get("user_role"); exists && userRole != nil {
+		role = userRole.(string)
 	}
 
-	userID, ok := userIDVal.(uint)
-	userRole, ok2 := userRoleVal.(string)
-	if !ok || !ok2 {
-		dto.ErrorResponse(c, response.NewBusinessError(
-			response.WithErrorCode(response.AuthError),
-			response.WithErrorMessage("用户信息类型错误"),
-		))
-		return
-	}
-
-	moderators, err := h.moduleService.GetModerators(uint(id), userID, userRole)
+	moderators, err := h.moduleService.GetModerators(uint(id), uid, role)
 	if err != nil {
 		dto.ErrorResponse(c, err.(*response.BusinessError))
 		return
