@@ -27,7 +27,8 @@ func Load(configPath string) error {
 	var err error
 	once.Do(func() {
 		// 首先加载 .env 文件到环境变量
-		if err = godotenv.Load("../../.env"); err != nil {
+		envPath := "../../.env"
+		if err = godotenv.Load(envPath); err != nil {
 			log.Printf("警告: 无法加载 .env 文件: %v", err)
 		}
 

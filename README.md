@@ -71,6 +71,53 @@ go mod tidy
 go run xxx
 ```
 
+## 数据库
+
+项目使用 GORM AutoMigrate 自动同步数据库表结构。
+
+### 新增模型
+
+1. 创建模型文件
+```go
+// services/auth-service/internal/model/role/role.go
+package role
+
+type Role struct {
+    ID   int    `gorm:"primaryKey" json:"id"`
+    Name string `gorm:"uniqueIndex" json:"name"`
+}
+
+func (Role) TableName() string {
+    return "auth_roles"
+}
+```
+
+2. 注册到 model.go
+```go
+func GetModels() []interface{} {
+    return []interface{}{
+        &user.User{},
+        &role.Role{}, // 新增
+    }
+}
+```
+
+3. 启动服务自动创建表
+```bash
+go run cmd/server/main.go
+```
+
+### 配置
+
+各服务使用独立数据库, 在 config.yaml 中配置数据库名。环境变量覆盖配置文件。
+
+```bash
+# .env
+DATABASE_HOST=localhost
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=your_password
+```
+
 ## 暂时的预期
 
 ### auth-service

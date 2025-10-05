@@ -1,9 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"log"
+
 	"terminal-terrace/sse-wiki/config"
 	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/route"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	_ "terminal-terrace/sse-wiki/docs"
 )
@@ -32,12 +38,55 @@ func main() {
 	// 1. 加载配置
 	config.MustLoad("config.yaml")
 
-	// 2. 初始化数据库
+	// 2. 确保数据库存在
+	if err := ensureDatabaseExists(); err != nil {
+		log.Fatalf("数据库创建失败: %v", err)
+	}
+
+	// 3. 初始化数据库
 	database.InitDatabase()
 
-	// 3. 设置路由
+	// 4. 设置路由
 	r := route.SetupRouter()
 
-	// 4. 启动服务
+	// 5. 启动服务
+	log.Printf("[sse-wiki] 服务启动在端口 :8080")
 	r.Run(":8080")
+}
+
+// ensureDatabaseExists 确保数据库存在，如果不存在则创建
+func ensureDatabaseExists() error {
+	databaseConf := config.Conf.Database
+
+	// 首先连接到postgres数据库（默认数据库）
+	dsn := fmt.Sprintf("host=%s user=%s password=%s port=%d sslmode=disable",
+		databaseConf.Host, databaseConf.Username, databaseConf.Password, databaseConf.Port)
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		return fmt.Errorf("连接到PostgreSQL失败: %v", err)
+	}
+
+	// 检查数据库是否存在
+	var exists bool
+	checkSQL := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = ?)"
+	if err = db.Raw(checkSQL, databaseConf.Database).Scan(&exists).Error; err != nil {
+		return fmt.Errorf("检查数据库是否存在失败: %v", err)
+	}
+
+	if !exists {
+		log.Printf("[sse-wiki] 数据库 '%s' 不存在，正在创建...", databaseConf.Database)
+		createSQL := fmt.Sprintf("CREATE DATABASE %s", databaseConf.Database)
+		if err = db.Exec(createSQL).Error; err != nil {
+			return fmt.Errorf("创建数据库失败: %v", err)
+		}
+		log.Printf("[sse-wiki] 数据库 '%s' 创建成功", databaseConf.Database)
+	}
+
+	// 关闭连接
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
