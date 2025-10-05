@@ -3,9 +3,11 @@ package register
 import (
 	"regexp"
 
+	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/model/user"
 	"terminal-terrace/auth-service/internal/pkg"
+	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/response"
 
 	"golang.org/x/crypto/bcrypt"
@@ -19,7 +21,15 @@ var (
 	digitRegex    = regexp.MustCompile(`[0-9]`)
 )
 
-type RegisterService struct{}
+type RegisterService struct {
+	refreshTokenRepo *refresh.RefreshTokenRepository
+}
+
+func NewRegisterService(refreshTokenRepo *refresh.RefreshTokenRepository) *RegisterService {
+	return &RegisterService{
+		refreshTokenRepo: refreshTokenRepo,
+	}
+}
 
 // 只支持账号密码注册
 func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *response.BusinessError) {
@@ -31,7 +41,7 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 	// 2. 检查用户名和邮箱是否已存在
 	var existingUser user.User
 	if err := database.PostgresDB.Where("username = ? OR email = ?", req.Username, req.Email).First(&existingUser).Error; err == nil {
-		if existingUser.Username == req.Username {
+		if existingUser.Username != nil && *existingUser.Username == req.Username {
 			return RegisterResponse{}, response.NewBusinessError(
 				response.WithErrorCode(response.Fail),
 				response.WithErrorMessage("用户名已存在"),
@@ -45,7 +55,12 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		}
 	}
 
-	// 3. 密码加密
+	// 3. 检查验证码
+	if err := code.VerifyEmailCode(req.Email, code.CodeTypeRegister, req.Code); err != nil {
+		return RegisterResponse{}, err
+	}
+
+	// 4. 密码加密
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return RegisterResponse{}, response.NewBusinessError(
@@ -54,9 +69,10 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 4. 创建用户
+	// 5. 创建用户
+	username := req.Username
 	newUser := user.User{
-		Username:     req.Username,
+		Username:     &username,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
 	}
@@ -68,8 +84,8 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 5. 生成 refresh token
-	refreshToken, err := pkg.GenerateRefreshToken(newUser.ID, newUser.Username, newUser.Email)
+	// 6. 生成 refresh token
+	token, err := pkg.GenerateRandomToken()
 	if err != nil {
 		return RegisterResponse{}, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
@@ -77,9 +93,22 @@ func (s *RegisterService) Register(req RegisterRequest) (RegisterResponse, *resp
 		)
 	}
 
-	// 6. 返回结果
+	// 7. 存储 refresh token
+	tokenData := refresh.TokenData{
+		UserID:   newUser.ID,
+		Username: *newUser.Username,
+		Email:    newUser.Email,
+	}
+	if err := s.refreshTokenRepo.Create(token, tokenData); err != nil {
+		return RegisterResponse{}, response.NewBusinessError(
+			response.WithErrorCode(response.Fail),
+			response.WithErrorMessage("存储刷新令牌失败"),
+		)
+	}
+
+	// 8. 返回结果
 	return RegisterResponse{
-		RefreshToken: refreshToken,
+		RefreshToken: token,
 		RedirectUrl:  "/",
 	}, nil
 }

@@ -6,6 +6,8 @@ const (
 	Fail ResponseCode = 0
 	// 参数解析错误
 	ParseError ResponseCode = 1
+	// 参数错误
+	InvalidParameter ResponseCode = 2
 )
 
 type BusinessError struct {

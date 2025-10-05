@@ -64,3 +64,8 @@ func InitDatabase() {
 func GetDB() *gorm.DB {
 	return PostgresDB
 }
+
+// GetRedis 获取 Redis 实例
+func GetRedis() *database.RedisClient {
+	return RedisDB
+}

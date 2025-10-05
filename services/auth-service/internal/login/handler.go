@@ -16,10 +16,6 @@ type LoginHandler struct{}
 // @Accept json
 // @Produce json
 // @Param request body LoginRequest true "登录请求"
-// @Success 200 {object} dto.Response{data=map[string]string} "登录成功，返回重定向 URL"
-// @Failure 400 {object} dto.Response "请求参数错误"
-// @Failure 401 {object} dto.Response "认证失败"
-// @Failure 500 {object} dto.Response "服务器内部错误"
 // @Router /auth/login [post]
 func (h *LoginHandler) handle(c *gin.Context) {
 	// 解析参数
@@ -28,8 +24,6 @@ func (h *LoginHandler) handle(c *gin.Context) {
 		dto.ErrorResponse(c, response.NewBusinessError(response.WithErrorCode(response.ParseError), response.WithErrorMessage("请检查参数")))
 		return
 	}
-
-	// TODO: CheckState
 
 	// 根据登录类型选择对应的服务
 	service, exists := loginServices[req.Type]
@@ -50,7 +44,6 @@ func (h *LoginHandler) handle(c *gin.Context) {
 	// TODO: 配置cookie
 	c.SetCookie("refresh_token", result.RefreshToken, 3600*24*7, "/", "", false, true)
 	dto.SuccessResponse(c, gin.H{
-		"refresh_token": result.RefreshToken,
 		"redirect_url":  result.RedirectUrl,
 	})
 }

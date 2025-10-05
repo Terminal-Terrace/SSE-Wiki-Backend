@@ -8,9 +8,9 @@ import (
 
 // Response 统一响应格式
 type Response struct {
-	Code    int    `json:"code" example:"100"`              // 状态码：100-成功，其他-失败
-	Message string `json:"message" example:"success"`       // 响应消息
-	Data    any    `json:"data,omitempty"`                  // 响应数据
+	Code    res.ResponseCode `json:"code" example:"100"`        // 状态码：100-成功，其他-失败
+	Message string           `json:"message" example:"success"` // 响应消息
+	Data    any              `json:"data,omitempty"`            // 响应数据
 }
 
 func SuccessResponse(c *gin.Context, data any) {

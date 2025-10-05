@@ -4,16 +4,27 @@ import (
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/model/user"
 	"terminal-terrace/auth-service/internal/pkg"
+	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/response"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-type SSEWikiLoginService struct{}
+type SSEWikiLoginService struct {
+	refreshTokenRepo *refresh.RefreshTokenRepository
+}
 
 func init() {
 	registerLoginService("sse-wiki", &SSEWikiLoginService{})
+}
+
+// getRefreshTokenRepo 延迟初始化 refreshTokenRepo
+func (s *SSEWikiLoginService) getRefreshTokenRepo() *refresh.RefreshTokenRepository {
+	if s.refreshTokenRepo == nil {
+		s.refreshTokenRepo = refresh.NewRefreshTokenRepository(database.RedisDB)
+	}
+	return s.refreshTokenRepo
 }
 
 // 我们自己的登录服务, 使用账号密码登录
@@ -57,7 +68,7 @@ func (s *SSEWikiLoginService) Login(req LoginRequest) (LoginResponse, *response.
 	}
 
 	// 5. 生成 refresh token
-	refreshToken, err := pkg.GenerateRefreshToken(foundUser.ID, foundUser.Username, foundUser.Email)
+	token, err := pkg.GenerateRandomToken()
 	if err != nil {
 		return LoginResponse{}, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
@@ -65,12 +76,30 @@ func (s *SSEWikiLoginService) Login(req LoginRequest) (LoginResponse, *response.
 		)
 	}
 
-	// 6. 删除已使用的 state（防止重复使用）
+	// 6. 存储 refresh token
+	username := ""
+	if foundUser.Username != nil {
+		username = *foundUser.Username
+	}
+	tokenData := refresh.TokenData{
+		UserID:   foundUser.ID,
+		Username: username,
+		Email:    foundUser.Email,
+		Role:     foundUser.Role,
+	}
+	if err := s.getRefreshTokenRepo().Create(token, tokenData); err != nil {
+		return LoginResponse{}, response.NewBusinessError(
+			response.WithErrorCode(response.Fail),
+			response.WithErrorMessage("存储令牌失败"),
+		)
+	}
+
+	// 7. 删除已使用的 state（防止重复使用）
 	pkg.DeleteState(req.State)
 
-	// 7. 返回结果
+	// 8. 返回结果
 	return LoginResponse{
-		RefreshToken: refreshToken,
+		RefreshToken: token,
 		RedirectUrl:  redirectUrl,
 	}, nil
 }

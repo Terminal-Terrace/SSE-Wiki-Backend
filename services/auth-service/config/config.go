@@ -22,57 +22,6 @@ var (
 	k    *koanf.Koanf
 )
 
-// AppConfig 应用配置结构
-type AppConfig struct {
-	Server   ServerConfig   `koanf:"server"`
-	Database DatabaseConfig `koanf:"database"`
-	Redis    RedisConfig    `koanf:"redis"`
-	Log      LogConfig      `koanf:"log"`
-	JWT      JWTConfig      `koanf:"jwt"`
-}
-
-type ServerConfig struct {
-	Host         string        `koanf:"host"`
-	Port         int           `koanf:"port"`
-	Mode         string        `koanf:"mode"` // debug, release
-	ReadTimeout  time.Duration `koanf:"read_timeout"`
-	WriteTimeout time.Duration `koanf:"write_timeout"`
-}
-
-type DatabaseConfig struct {
-	Driver       string `koanf:"driver"`
-	Host         string `koanf:"host"`
-	Port         int    `koanf:"port"`
-	Username     string `koanf:"username"`
-	Password     string `koanf:"password"`
-	Database     string `koanf:"database"`
-	SSLMode      bool   `koanf:"sslmode"`
-	LogLevel     string `koanf:"log_level"`    // 数据库日志级别
-	MaxOpenConns int    `koanf:"max_open_conns"`
-	MaxIdleConns int    `koanf:"max_idle_conns"`
-	MaxLifetime  int    `koanf:"max_lifetime"` // 秒
-}
-
-type RedisConfig struct {
-	Host     string `koanf:"host"`
-	Port     int    `koanf:"port"`
-	Password string `koanf:"password"`
-	DB       int    `koanf:"db"`
-	PoolSize int    `koanf:"pool_size"`
-}
-
-type LogConfig struct {
-	Level  string `koanf:"level"`  // debug, info, warn, error
-	Format string `koanf:"format"` // json, text
-	Output string `koanf:"output"` // stdout, file
-	Path   string `koanf:"path"`   // 日志文件路径
-}
-
-type JWTConfig struct {
-	Secret     string `koanf:"secret"`
-	ExpireTime int    `koanf:"expire_time"` // 小时
-}
-
 // Load 加载配置文件
 func Load(configPath string) error {
 	var err error
@@ -84,17 +33,17 @@ func Load(configPath string) error {
 
 		k = koanf.New(".")
 
-		// 加载配置文件
+		// 加载环境变量（会覆盖配置文件）
+		if err = k.Load(env.Provider("", ".", func(s string) string {
+			return strings.ReplaceAll(strings.ToLower(s), "_", ".")
+		}), nil); err != nil {
+			log.Printf("加载环境变量失败: %v", err)
+		}
+
+		// 加载配置文件, 项目的配置文件优先
 		if err = k.Load(file.Provider(configPath), yaml.Parser()); err != nil {
 			err = fmt.Errorf("加载配置文件失败: %w", err)
 			return
-		}
-
-		// 加载环境变量（会覆盖配置文件）
-		if err = k.Load(env.Provider("", ".", func(s string) string {
-			return strings.Replace(strings.ToLower(s), "_", ".", -1)
-		}), nil); err != nil {
-			log.Printf("加载环境变量失败: %v", err)
 		}
 
 		// 解析到结构体
@@ -107,6 +56,8 @@ func Load(configPath string) error {
 		// 转换时间单位
 		Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
 		Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
+
+		fmt.Println(Conf.Github)
 	})
 
 	return err

@@ -18,17 +18,19 @@ type Claims struct {
 	UserID   int    `json:"user_id"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }
 
 // GenerateAccessToken 生成访问令牌（短期有效，用于 API 访问）
-func GenerateAccessToken(userID int, username, email string) (string, error) {
+func GenerateAccessToken(userID int, username, email, role string) (string, error) {
 	expirationTime := time.Now().Add(time.Duration(config.Conf.JWT.ExpireTime) * time.Hour)
 
 	claims := &Claims{
 		UserID:   userID,
 		Username: username,
 		Email:    email,
+		Role:     role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

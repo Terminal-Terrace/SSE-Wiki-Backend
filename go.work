@@ -6,4 +6,5 @@ use (
     ./packages/auth-sdk
     ./packages/response
     ./packages/database
+    ./packages/email
 )
