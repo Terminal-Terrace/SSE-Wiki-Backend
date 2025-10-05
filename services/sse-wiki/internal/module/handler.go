@@ -30,8 +30,12 @@ func NewModuleHandler() *ModuleHandler {
 // @Router /modules [get]
 func (h *ModuleHandler) GetModuleTree(c *gin.Context) {
 	// 从上下文获取用户信息（由认证中间件设置）
-	userID, _ := c.Get("user_id")
-	uid := userID.(uint)
+	userID, exists := c.Get("user_id")
+	uid, ok := userID.(uint)
+	if !exists || !ok {
+		dto.ErrorResponse(c, response.NewBusinessError("未认证用户", response.Unauthorized))
+		return
+	}
 
 	tree, err := h.moduleService.GetModuleTree(uid)
 	if err != nil {
