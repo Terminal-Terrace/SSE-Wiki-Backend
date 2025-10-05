@@ -2,7 +2,6 @@ package module
 
 import (
 	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
-	// userModel "terminal-terrace/sse-wiki/internal/model/user"
 
 	"gorm.io/gorm"
 )
