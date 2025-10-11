@@ -12,7 +12,7 @@ install:
 	elif [ -d "packages/$(filter-out $@,$(MAKECMDGOALS))" ]; then \
 		$(MAKE) -C packages/$(filter-out $@,$(MAKECMDGOALS)) install; \
 	else \
-		echo "Sub package '$(filter-out $@,$(MAKECMDGOALS))'not exist; \
+		echo "Sub package '$(filter-out $@,$(MAKECMDGOALS))'not exist"; \
 		exit 1; \
 	fi
 
