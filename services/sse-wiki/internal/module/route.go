@@ -15,7 +15,6 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		modules.GET("", middleware.OptionalJWTAuth(), moduleHandler.GetModuleTree)
 		modules.GET("/:id", middleware.OptionalJWTAuth(), moduleHandler.GetModule)
 		modules.GET("/:id/breadcrumbs", middleware.OptionalJWTAuth(), moduleHandler.GetBreadcrumbs)
-		modules.GET("/:id/moderators", middleware.OptionalJWTAuth(), moduleHandler.GetModerators)
 
 		// 编辑类接口（必需认证）
 		authRequired := modules.Group("")
@@ -28,7 +27,8 @@ func RegisterRoutes(r *gin.RouterGroup) {
 			// 编辑锁
 			authRequired.POST("/lock", lockHandler.HandleLock)
 
-			// 协作者管理
+			// 协作者管理（需要认证才能查看和管理）
+			authRequired.GET("/:id/moderators", moduleHandler.GetModerators)
 			authRequired.POST("/:id/moderators", moduleHandler.AddModerator)
 			authRequired.DELETE("/:id/moderators/:userId", moduleHandler.RemoveModerator)
 		}
