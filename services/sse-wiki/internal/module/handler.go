@@ -5,10 +5,12 @@ import (
 	"terminal-terrace/response"
 	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/dto"
+	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
 
 	"github.com/gin-gonic/gin"
 )
 
+var _ = moduleModel.Module{}
 type ModuleHandler struct {
 	moduleService *ModuleService
 }
