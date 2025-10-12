@@ -231,17 +231,10 @@ func (h *ModuleHandler) GetModerators(c *gin.Context) {
 		return
 	}
 
-	// 从上下文获取用户信息（可选认证，可能为 nil）
-	var uid uint = 0
-	var role string = ""
-	if userID, exists := c.Get("user_id"); exists && userID != nil {
-		uid = userID.(uint)
-	}
-	if userRole, exists := c.Get("user_role"); exists && userRole != nil {
-		role = userRole.(string)
-	}
+	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("user_role")
 
-	moderators, err := h.moduleService.GetModerators(uint(id), uid, role)
+	moderators, err := h.moduleService.GetModerators(uint(id), userID.(uint), userRole.(string))
 	if err != nil {
 		dto.ErrorResponse(c, err.(*response.BusinessError))
 		return
