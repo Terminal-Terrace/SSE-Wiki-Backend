@@ -3,7 +3,6 @@ package module
 import (
 	"terminal-terrace/response"
 	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
-	userModel "terminal-terrace/sse-wiki/internal/model/user"
 
 	"gorm.io/gorm"
 )
@@ -416,19 +415,11 @@ func (s *ModuleService) AddModerator(moduleID uint, req AddModeratorRequest, use
 		)
 	}
 
-	// 检查目标用户是否存在
-	var targetUser userModel.User
-	err = s.moduleRepo.db.First(&targetUser, req.UserID).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return response.NewBusinessError(
-				response.WithErrorCode(response.NotFound),
-				response.WithErrorMessage("目标用户不存在"),
-			)
-		}
+	// 防止添加自己为协作者
+	if req.UserID == userID {
 		return response.NewBusinessError(
-			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("检查用户失败"),
+			response.WithErrorCode(response.ParseError),
+			response.WithErrorMessage("不能添加自己为协作者"),
 		)
 	}
 
