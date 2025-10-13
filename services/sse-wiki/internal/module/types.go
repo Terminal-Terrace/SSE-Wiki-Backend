@@ -4,6 +4,7 @@ package module
 type ModuleTreeNode struct {
 	ID          uint             `json:"id"`
 	Name        string           `json:"name"`
+	Description string    		 `json:"description"`
 	OwnerID     uint             `json:"owner_id"`
 	IsModerator bool             `json:"isModerator"`
 	Children    []ModuleTreeNode `json:"children"`
@@ -12,12 +13,14 @@ type ModuleTreeNode struct {
 // CreateModuleRequest 创建模块请求
 type CreateModuleRequest struct {
 	Name     string `json:"name" binding:"required,min=1,max=100"`
+	Description string `json:"description" binding:"required,min=1,max=512"`
 	ParentID *uint  `json:"parent_id"`
 }
 
 // UpdateModuleRequest 更新模块请求
 type UpdateModuleRequest struct {
 	Name     string `json:"name" binding:"required,min=1,max=100"`
+	Description string `json:"description" binding:"required,min=1,max=512"`
 	ParentID *uint  `json:"parent_id"`
 }
 

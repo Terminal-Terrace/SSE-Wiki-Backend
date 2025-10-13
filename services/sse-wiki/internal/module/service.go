@@ -60,6 +60,7 @@ func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, 
 			node := ModuleTreeNode{
 				ID:          module.ID,
 				Name:        module.ModuleName,
+				Description: module.Description,
 				OwnerID:     module.OwnerID,
 				IsModerator: moderatorMap[module.ID],
 				Children:    s.buildTree(modules, &module.ID, moderatorMap),
@@ -105,8 +106,8 @@ func (s *ModuleService) GetBreadcrumbs(id uint) ([]BreadcrumbNode, error) {
 
 		// 前置插入（保证根模块在前）
 		breadcrumbs = append([]BreadcrumbNode{{
-			ID:   module.ID,
-			Name: module.ModuleName,
+			ID:   		 module.ID,
+			Name: 		 module.ModuleName,
 		}}, breadcrumbs...)
 
 		// 向上查找父模块
@@ -152,6 +153,7 @@ func (s *ModuleService) CreateModule(req CreateModuleRequest, userID uint, userR
 	// 创建模块
 	module := &moduleModel.Module{
 		ModuleName: req.Name,
+		Description: req.Description,
 		ParentID:   req.ParentID,
 		OwnerID:    userID,
 	}
@@ -260,7 +262,8 @@ func (s *ModuleService) UpdateModule(id uint, req UpdateModuleRequest, userID ui
 	}
 
 	// 更新模块
-	module.ModuleName = req.Name
+	module.ModuleName  = req.Name
+	module.Description = req.Description
 	// 只有前端明确传了parent_id时才更新（shouldUpdateParentID标志）
 	if shouldUpdateParentID {
 		module.ParentID = req.ParentID
