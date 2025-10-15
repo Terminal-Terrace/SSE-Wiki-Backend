@@ -7,13 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 
+	"terminal-terrace/sse-wiki/internal/article"
+	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/handler"
 	"terminal-terrace/sse-wiki/internal/module"
 	"terminal-terrace/sse-wiki/internal/service"
 )
 
-func initRoute(r *gin.Engine) {
+func initRoute(r *gin.Engine, db *gorm.DB) {
 	// Swagger 文档路由
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -32,6 +35,9 @@ func initRoute(r *gin.Engine) {
 
 	// 模块管理路由
 	module.RegisterRoutes(apiV1)
+
+	// 文章管理路由
+	article.SetupArticleRoutes(apiV1, db)
 }
 
 func SetupRouter() *gin.Engine {
@@ -51,12 +57,14 @@ func SetupRouter() *gin.Engine {
 	// 设置跨域请求
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true, // 允许携带 cookie
 	}))
 
-	initRoute(r)
+	// 获取数据库实例并初始化路由
+	db := database.GetDB()
+	initRoute(r, db)
 
 	return r
 }
