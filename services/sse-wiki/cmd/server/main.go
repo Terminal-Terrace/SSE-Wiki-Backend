@@ -40,8 +40,11 @@ import (
 // @description Type "Bearer" followed by a space and JWT token.
 
 func main() {
-	// 1. 加载配置
+	// 1.1 加载配置
 	config.MustLoad("config.yaml")
+
+	// 1.2 用命令行初始项目
+	config.InitProgram()
 
 	// 2. 确保数据库存在
 	if err := ensureDatabaseExists(); err != nil {

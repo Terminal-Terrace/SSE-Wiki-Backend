@@ -71,6 +71,9 @@ go mod tidy
 go run xxx
 ```
 
+在window系统中双击run.bat即可运行
+
+
 ## 数据库
 
 项目使用 GORM AutoMigrate 自动同步数据库表结构。
