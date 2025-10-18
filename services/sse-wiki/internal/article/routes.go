@@ -1,9 +1,10 @@
 package article
 
 import (
+	"terminal-terrace/sse-wiki/internal/middleware"
+
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
-	"terminal-terrace/sse-wiki/internal/middleware"
 )
 
 // SetupArticleRoutes 设置文章相关路由
@@ -38,15 +39,16 @@ func SetupArticleRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	// 版本路由
 	versions := r.Group("/versions")
 	{
-		versions.GET("/:id", articleHandler.GetVersion) // 获取特定版本内容
+		versions.GET("/:id", articleHandler.GetVersion)          // 获取特定版本内容
+		versions.GET("/:id/diff", articleHandler.GetVersionDiff) // 获取版本diff信息
 	}
 
 	// 审核路由 - 需要认证
 	reviews := r.Group("/reviews")
 	reviews.Use(middleware.JWTAuth()) // 需要认证
 	{
-		reviews.GET("", articleHandler.GetReviews)                // 获取审核列表（需要认证）
-		reviews.GET("/:id", articleHandler.GetReviewDetail)       // 获取审核详情（需要认证）
-		reviews.POST("/:id/action", articleHandler.ReviewAction)  // 审核操作（需要认证）
+		reviews.GET("", articleHandler.GetReviews)               // 获取审核列表（需要认证）
+		reviews.GET("/:id", articleHandler.GetReviewDetail)      // 获取审核详情（需要认证）
+		reviews.POST("/:id/action", articleHandler.ReviewAction) // 审核操作（需要认证）
 	}
 }

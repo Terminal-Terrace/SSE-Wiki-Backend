@@ -123,7 +123,13 @@ func (h *ArticleHandler) GetArticle(c *gin.Context) {
 		userID = uid.(uint)
 	}
 
-	article, err := h.articleService.GetArticle(uint(articleID), userID)
+	// 获取用户全局角色
+	var userRole string
+	if role, exists := c.Get("user_role"); exists && role != nil {
+		userRole = role.(string)
+	}
+
+	article, err := h.articleService.GetArticle(uint(articleID), userID, userRole)
 	if err != nil {
 		dto.ErrorResponse(c, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
@@ -161,8 +167,14 @@ func (h *ArticleHandler) CreateSubmission(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("user_role")
 
-	submission, err := h.articleService.CreateSubmission(uint(articleID), req, userID.(uint))
+	var roleStr string
+	if userRole != nil {
+		roleStr = userRole.(string)
+	}
+
+	submission, publishedVersion, err := h.articleService.CreateSubmission(uint(articleID), req, userID.(uint), roleStr)
 	if err != nil {
 		// 检查是否是冲突错误
 		if conflictErr, ok := err.(*MergeConflictError); ok {
@@ -180,21 +192,29 @@ func (h *ArticleHandler) CreateSubmission(c *gin.Context) {
 		return
 	}
 
-	// 如果submission为nil，说明是免审核模式，直接发布成功
 	if submission == nil {
+		if publishedVersion != nil {
+			dto.SuccessResponse(c, gin.H{
+				"message":           "修改已发布",
+				"published":         true,
+				"need_review":       false,
+				"published_version": publishedVersion,
+			})
+			return
+		}
 		dto.SuccessResponse(c, gin.H{
-			"message":       "修改已发布",
-			"published":     true,
-			"need_review":   false,
+			"message":     "修改已发布",
+			"published":   true,
+			"need_review": false,
 		})
 		return
 	}
 
 	// 需要审核，返回submission信息
 	dto.SuccessResponse(c, gin.H{
-		"message":       "提交成功，等待审核",
-		"submission":    submission,
-		"need_review":   true,
+		"message":     "提交成功，等待审核",
+		"submission":  submission,
+		"need_review": true,
 	})
 }
 
@@ -250,7 +270,19 @@ func (h *ArticleHandler) GetReviewDetail(c *gin.Context) {
 		return
 	}
 
-	detail, err := h.articleService.GetReviewDetail(uint(submissionID))
+	// 获取用户ID（可选认证）
+	var userID uint = 0
+	if uid, exists := c.Get("user_id"); exists && uid != nil {
+		userID = uid.(uint)
+	}
+
+	// 获取用户全局角色
+	var userRole string
+	if role, exists := c.Get("user_role"); exists && role != nil {
+		userRole = role.(string)
+	}
+
+	detail, err := h.articleService.GetReviewDetail(uint(submissionID), userID, userRole)
 	if err != nil {
 		dto.ErrorResponse(c, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
@@ -316,16 +348,8 @@ func (h *ArticleHandler) ReviewAction(c *gin.Context) {
 		return
 	}
 
-	// 调整成功响应格式以符合前端期望
-	// result 是 map[string]interface{}，包含 published_version_id
-	if versionID, ok := result.(map[string]interface{})["published_version_id"]; ok {
-		dto.SuccessResponse(c, gin.H{
-			"success":        true,
-			"new_version_id": versionID,
-		})
-	} else {
-		dto.SuccessResponse(c, result)
-	}
+	// 返回审核结果，包含完整的 published_version
+	dto.SuccessResponse(c, result)
 }
 
 // UpdateSettings 更新文章设置
@@ -476,4 +500,37 @@ func (h *ArticleHandler) GetVersion(c *gin.Context) {
 	}
 
 	dto.SuccessResponse(c, version)
+}
+
+// GetVersionDiff 获取版本diff信息
+// @Summary 获取版本diff信息
+// @Description 获取指定版本和其基础版本的内容，用于前端展示diff
+// @Tags 版本
+// @Accept json
+// @Produce json
+// @Param id path int true "版本ID"
+// @Success 200 {object} response.Response "成功返回版本diff信息"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 404 {object} response.Response "版本不存在"
+// @Router /api/v1/versions/{id}/diff [get]
+func (h *ArticleHandler) GetVersionDiff(c *gin.Context) {
+	versionID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		dto.ErrorResponse(c, response.NewBusinessError(
+			response.WithErrorCode(response.ParseError),
+			response.WithErrorMessage("无效的版本ID"),
+		))
+		return
+	}
+
+	diffData, err := h.articleService.GetVersionDiff(uint(versionID))
+	if err != nil {
+		dto.ErrorResponse(c, response.NewBusinessError(
+			response.WithErrorCode(response.Fail),
+			response.WithErrorMessage(err.Error()),
+		))
+		return
+	}
+
+	dto.SuccessResponse(c, diffData)
 }
