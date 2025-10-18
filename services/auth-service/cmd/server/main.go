@@ -3,6 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 
 	"terminal-terrace/auth-service/config"
 	"terminal-terrace/auth-service/internal/database"
@@ -47,15 +51,20 @@ func main() {
 	// 3. 初始化数据库连接
 	database.InitDatabase()
 
-	// 4. 初始化数据库表
+	// 3.1 同步数据库结构
 	if err := model.InitTable(database.GetDB()); err != nil {
 		log.Fatalf("数据库表初始化失败: %v", err)
 	}
 
-	// 5. 设置路由
+	// 3.2 更新 Swagger 文档
+	if err := refreshSwaggerDocs(); err != nil {
+		log.Printf("[auth-service] Swagger 文档更新失败: %v", err)
+	}
+
+	// 4. 设置路由
 	r := route.SetupRouter()
 
-	// 6. 启动服务
+	// 5. 启动服务
 	log.Printf("[auth-service] 服务启动在端口 :8081")
 	r.Run(":8081")
 }
@@ -95,4 +104,48 @@ func ensureDatabaseExists() error {
 		return err
 	}
 	return sqlDB.Close()
+}
+
+// refreshSwaggerDocs 生成最新的 Swagger 文档
+func refreshSwaggerDocs() error {
+	serviceRoot, err := resolveServiceRoot()
+	if err != nil {
+		return err
+	}
+
+	args := []string{
+		"init",
+		"-g", filepath.ToSlash(filepath.Join("cmd", "server", "main.go")),
+		"-o", filepath.ToSlash("docs"),
+		"--parseDependency",
+		"--parseInternal",
+	}
+
+	if err := runCommand(serviceRoot, "swag", args...); err != nil {
+		log.Printf("[auth-service] swag 命令执行失败，尝试使用 go run 回退: %v", err)
+		fallbackArgs := append([]string{"run", "github.com/swaggo/swag/cmd/swag@latest"}, args...)
+		if err := runCommand(serviceRoot, "go", fallbackArgs...); err != nil {
+			return fmt.Errorf("使用 go run 更新 Swagger 失败: %w", err)
+		}
+	}
+
+	log.Printf("[auth-service] Swagger 文档已同步")
+	return nil
+}
+
+func runCommand(dir, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Dir = dir
+	return cmd.Run()
+}
+
+func resolveServiceRoot() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", fmt.Errorf("无法获取当前文件路径")
+	}
+
+	return filepath.Clean(filepath.Join(filepath.Dir(filename), "..", "..")), nil
 }
