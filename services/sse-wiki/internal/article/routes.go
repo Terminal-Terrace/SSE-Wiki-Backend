@@ -24,7 +24,7 @@ func SetupArticleRoutes(r *gin.RouterGroup, db *gorm.DB) {
 	{
 		articlesAuth.POST("", articleHandler.CreateArticle)                     // 创建文章（需要认证）
 		articlesAuth.POST("/:id/submissions", articleHandler.CreateSubmission)  // 提交修改（需要认证）
-		articlesAuth.PATCH("/:id/settings", articleHandler.UpdateSettings)      // 更新设置（需要认证）
+		articlesAuth.PATCH("/:id/basic-info", articleHandler.UpdateBasicInfo)   // 更新基础信息（需要认证）
 		articlesAuth.POST("/:id/collaborators", articleHandler.AddCollaborator) // 添加协作者（需要认证）
 	}
 

@@ -352,16 +352,17 @@ func (h *ArticleHandler) ReviewAction(c *gin.Context) {
 	dto.SuccessResponse(c, result)
 }
 
-// UpdateSettings 更新文章设置
-// @Summary 更新文章设置
+// UpdateBasicInfo 更新文章基础信息
+// @Summary 更新文章基础信息
+// @Description 更新文章的标题、标签、审核设置等基础信息（不涉及版本管理）
 // @Tags Article
 // @Accept json
 // @Produce json
 // @Param id path int true "文章ID"
-// @Param request body dto.UpdateArticleSettingsRequest true "设置请求"
+// @Param request body dto.UpdateArticleBasicInfoRequest true "基础信息请求"
 // @Success 200 {object} response.Response
-// @Router /articles/{id}/settings [patch]
-func (h *ArticleHandler) UpdateSettings(c *gin.Context) {
+// @Router /articles/{id}/basic-info [patch]
+func (h *ArticleHandler) UpdateBasicInfo(c *gin.Context) {
 	articleID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		dto.ErrorResponse(c, response.NewBusinessError(
@@ -371,7 +372,7 @@ func (h *ArticleHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	var req dto.UpdateArticleSettingsRequest
+	var req dto.UpdateArticleBasicInfoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		dto.ValidationErrorResponse(c, err)
 		return
@@ -385,11 +386,20 @@ func (h *ArticleHandler) UpdateSettings(c *gin.Context) {
 		roleStr = userRole.(string)
 	}
 
-	err = h.articleService.UpdateSettings(uint(articleID), userID.(uint), roleStr, req)
+	err = h.articleService.UpdateBasicInfo(uint(articleID), userID.(uint), roleStr, req)
 	if err != nil {
+		// 根据错误类型返回不同的响应
+		if err.Error() == "permission denied: requires moderator or higher privileges" {
+			dto.ErrorResponse(c, response.NewBusinessError(
+				response.WithErrorCode(response.Forbidden),
+				response.WithErrorMessage("权限不足：需要 moderator 或更高权限"),
+			))
+			return
+		}
+
 		dto.ErrorResponse(c, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("更新设置失败"),
+			response.WithErrorMessage("更新基础信息失败: "+err.Error()),
 		))
 		return
 	}

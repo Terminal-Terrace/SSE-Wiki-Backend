@@ -794,24 +794,62 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 	return result, nil
 }
 
-// UpdateSettings 更新文章设置
-func (s *ArticleService) UpdateSettings(articleID uint, userID uint, userRole string, req dto.UpdateArticleSettingsRequest) error {
-	// 检查权限（全局admin或文章owner）
-	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "owner")
+// UpdateBasicInfo 更新文章基础信息（标题、标签、审核设置）
+// 这些信息不需要版本管理，直接更新
+// 权限要求：admin、owner 或 moderator
+func (s *ArticleService) UpdateBasicInfo(articleID uint, userID uint, userRole string, req dto.UpdateArticleBasicInfoRequest) error {
+	// 检查权限（全局admin或文章moderator及以上）
+	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "moderator")
 	if !hasPermission {
-		return errors.New("permission denied")
+		return errors.New("permission denied: requires moderator or higher privileges")
 	}
 
+	// 获取文章
 	art, err := s.articleRepo.GetByID(articleID)
 	if err != nil {
 		return err
 	}
 
+	// 更新标题
+	if req.Title != nil && *req.Title != "" {
+		art.Title = *req.Title
+	}
+
+	// 更新审核设置
 	if req.IsReviewRequired != nil {
 		art.IsReviewRequired = req.IsReviewRequired
 	}
 
-	return s.articleRepo.Update(art)
+	// 更新文章基础信息
+	art.UpdatedAt = time.Now()
+	if err := s.articleRepo.Update(art); err != nil {
+		return err
+	}
+
+	// 更新标签
+	if req.Tags != nil {
+		// 移除旧标签
+		s.tagRepo.RemoveArticleTags(articleID)
+
+		// 添加新标签
+		for _, tagName := range *req.Tags {
+			if tagName == "" {
+				continue
+			}
+			tag, err := s.tagRepo.FindOrCreateTag(tagName)
+			if err != nil {
+				// 单个标签失败不影响整体操作
+				log.Printf("[UpdateBasicInfo] 创建标签失败: %s, error: %v", tagName, err)
+				continue
+			}
+			if err := s.tagRepo.AddArticleTag(articleID, tag.ID); err != nil {
+				log.Printf("[UpdateBasicInfo] 添加标签失败: %s, error: %v", tagName, err)
+				continue
+			}
+		}
+	}
+
+	return nil
 }
 
 // AddCollaborator 添加协作者

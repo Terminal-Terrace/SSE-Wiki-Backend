@@ -34,9 +34,13 @@ type CreateArticleRequest struct {
 	Tags             StringSlice `json:"tags"`
 }
 
-// UpdateArticleSettingsRequest 更新文章设置请求
-type UpdateArticleSettingsRequest struct {
-	IsReviewRequired *bool `json:"is_review_required"`
+// UpdateArticleBasicInfoRequest 更新文章基础信息请求
+// 包含标题、标签、审核设置等不需要版本管理的基础属性
+// 权限要求：admin、owner 或 moderator
+type UpdateArticleBasicInfoRequest struct {
+	Title            *string      `json:"title" binding:"omitempty,max=255"`
+	Tags             *StringSlice `json:"tags"`
+	IsReviewRequired *bool        `json:"is_review_required"`
 }
 
 // AddCollaboratorRequest 添加协作者请求
