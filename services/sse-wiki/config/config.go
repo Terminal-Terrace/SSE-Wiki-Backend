@@ -47,7 +47,7 @@ type DatabaseConfig struct {
 	Password     string `koanf:"password"`
 	Database     string `koanf:"database"`
 	SSLMode      bool   `koanf:"sslmode"`
-	LogLevel     string `koanf:"log_level"`    // 数据库日志级别
+	LogLevel     string `koanf:"log_level"` // 数据库日志级别
 	MaxOpenConns int    `koanf:"max_open_conns"`
 	MaxIdleConns int    `koanf:"max_idle_conns"`
 	MaxLifetime  int    `koanf:"max_lifetime"` // 秒
