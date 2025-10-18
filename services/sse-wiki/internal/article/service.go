@@ -125,11 +125,12 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 	// - 其他情况：需要审核
 	isAdmin := userRole == "admin"
 	isOwnerOrModerator := userArticleRoleStr == "owner" || userArticleRoleStr == "moderator"
-	needReview := art.IsReviewRequired && !isAdmin && !isOwnerOrModerator
+	isReviewRequired := art.IsReviewRequired != nil && *art.IsReviewRequired
+	needReview := isReviewRequired && !isAdmin && !isOwnerOrModerator
 
 	// TODO: 生产环境优化 - 替换为结构化日志库（如zap/zerolog），并根据环境变量控制日志级别
 	log.Printf("[CreateSubmission] articleID=%d, userID=%d, userRole=%s, articleRole=%s, isReviewRequired=%v, needReview=%v",
-		articleID, userID, userRole, userArticleRoleStr, art.IsReviewRequired, needReview)
+		articleID, userID, userRole, userArticleRoleStr, isReviewRequired, needReview)
 
 	// 3. 如果不需要审核（免审核模式 或 管理员/owner/moderator），执行3路合并并直接发布
 	if !needReview {
@@ -307,7 +308,8 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 
 	// 3. 检查权限（全局admin或文章moderator及以上）
 	// 注意：免审核模式下的自动合并不需要权限检查（提交者即审核者）
-	isAutoApprove := !art.IsReviewRequired && submission.SubmittedBy == reviewerID
+	isReviewRequired := art.IsReviewRequired != nil && *art.IsReviewRequired
+	isAutoApprove := !isReviewRequired && submission.SubmittedBy == reviewerID
 	if !isAutoApprove {
 		hasPermission := s.articleRepo.CheckPermission(submission.ArticleID, reviewerID, userRole, "moderator")
 		if !hasPermission {
@@ -826,7 +828,7 @@ func (s *ArticleService) UpdateSettings(articleID uint, userID uint, userRole st
 	}
 
 	if req.IsReviewRequired != nil {
-		art.IsReviewRequired = *req.IsReviewRequired
+		art.IsReviewRequired = req.IsReviewRequired
 	}
 
 	return s.articleRepo.Update(art)

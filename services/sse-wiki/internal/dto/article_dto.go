@@ -30,7 +30,7 @@ type CreateArticleRequest struct {
 	ModuleID         uint        `json:"module_id" binding:"required"`
 	Content          string      `json:"content" binding:"required"`
 	CommitMessage    string      `json:"commit_message" binding:"required,max=255"`
-	IsReviewRequired bool        `json:"is_review_required"`
+	IsReviewRequired *bool       `json:"is_review_required"`
 	Tags             StringSlice `json:"tags"`
 }
 
@@ -67,7 +67,7 @@ type ArticleResponse struct {
 	ModuleID         uint     `json:"module_id"`
 	CurrentVersionID *uint    `json:"current_version_id"`
 	CurrentUserRole  string   `json:"current_user_role"`
-	IsReviewRequired bool     `json:"is_review_required"`
+	IsReviewRequired *bool    `json:"is_review_required"`
 	ViewCount        uint     `json:"view_count"`
 	Tags             []string `json:"tags"`
 	CreatedBy        uint     `json:"created_by"`

@@ -17,7 +17,7 @@ type Article struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	// 当前文章是否需要审核（默认true，可由管理员设置）
-	IsReviewRequired bool `gorm:"default:true" json:"is_review_required"`
+	IsReviewRequired *bool `gorm:"default:true" json:"is_review_required"`
 	// 阅读量统计
 	ViewCount uint `gorm:"default:0" json:"view_count"`
 }
