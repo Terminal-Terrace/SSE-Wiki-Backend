@@ -46,11 +46,11 @@ type AddCollaboratorRequest struct {
 }
 
 // SubmissionRequest 提交修改请求
+// 注意：标签只能在创建文章时设置，更新时不支持修改标签
 type SubmissionRequest struct {
-	Content       string      `json:"content" binding:"required"`
-	CommitMessage string      `json:"commit_message" binding:"required,max=255"`
-	BaseVersionID uint        `json:"base_version_id" binding:"required"`
-	Tags          StringSlice `json:"tags"`
+	Content       string `json:"content" binding:"required"`
+	CommitMessage string `json:"commit_message" binding:"required,max=255"`
+	BaseVersionID uint   `json:"base_version_id" binding:"required"`
 }
 
 // ReviewActionRequest 审核操作请求

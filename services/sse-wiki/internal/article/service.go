@@ -215,21 +215,6 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 			return nil, nil, err
 		}
 
-		// 免审核模式：立即应用标签
-		if len(req.Tags) > 0 {
-			s.tagRepo.RemoveArticleTags(articleID)
-			for _, tagName := range req.Tags {
-				if tagName == "" {
-					continue
-				}
-				tag, err := s.tagRepo.FindOrCreateTag(tagName)
-				if err != nil {
-					continue
-				}
-				s.tagRepo.AddArticleTag(articleID, tag.ID)
-			}
-		}
-
 		// 返回nil表示无需审核（直接发布成功）
 		return nil, publishedVersion, nil
 	}
@@ -262,21 +247,14 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 	// TODO: 生产环境优化 - 移除或使用结构化日志
 	log.Printf("[CreateSubmission] 创建pending版本成功, versionID=%d, versionNumber=%d", pendingVersion.ID, pendingVersion.VersionNumber)
 
-	// 5. 序列化标签为JSON（审核通过后才应用）
-	tagsJSON := "[]"
-	if len(req.Tags) > 0 {
-		tagsBytes, err := json.Marshal(req.Tags)
-		if err == nil {
-			tagsJSON = string(tagsBytes)
-		}
-	}
-
-	// 6. 创建审核提交记录
+	// 5. 创建审核提交记录
+	// 注意：标签只能在创建文章时设置，提交修改时不再支持标签变更
+	// ProposedTags 字段保留为空数组以保持数据库兼容性
 	submission := &article.ReviewSubmission{
 		ArticleID:         articleID,
 		ProposedVersionID: pendingVersion.ID,
 		BaseVersionID:     req.BaseVersionID,
-		ProposedTags:      tagsJSON,
+		ProposedTags:      "[]", // 不再从请求中获取标签
 		SubmittedBy:       userID,
 		Status:            "pending",
 		CreatedAt:         time.Now(),
@@ -412,7 +390,9 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			return nil, err
 		}
 
-		// 审核通过后应用标签
+		// 审核通过后应用标签（仅用于兼容历史提交数据）
+		// 注意：新的提交不再支持修改标签，此逻辑仅处理历史数据
+		// 标签只能在创建文章时设置，后续提交的 ProposedTags 将始终为 "[]"
 		var proposedTags []string
 		if submission.ProposedTags != "" && submission.ProposedTags != "[]" {
 			if err := json.Unmarshal([]byte(submission.ProposedTags), &proposedTags); err == nil {
