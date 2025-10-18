@@ -1,20 +1,15 @@
 package article
 
-import (
-	"encoding/json"
-	"strings"
-
-	"github.com/sergi/go-diff/diffmatchpatch"
-)
-
 type MergeService struct{}
 
 // MergeResult 3路合并结果
+// 说明：
+// - HasConflict: 是否有冲突（后端检测）
+// - MergedContent: 自动合并后的内容（仅当无冲突时有值）
+// 注意：冲突标记的生成已移至前端，后端只返回三方原始内容（base, their, our）
 type MergeResult struct {
-	HasConflict           bool   `json:"has_conflict"`
-	MergedContent         string `json:"merged_content"`
-	ConflictMarkedContent string `json:"conflict_marked_content"`
-	ConflictDetails       string `json:"conflict_details"` // JSON格式
+	HasConflict   bool   `json:"has_conflict"`
+	MergedContent string `json:"merged_content"` // 仅当 HasConflict=false 时有值
 }
 
 func NewMergeService() *MergeService {
@@ -34,18 +29,7 @@ func (s *MergeService) ThreeWayMerge(base, theirs, ours string) MergeResult {
 
 	if theirsChanged && oursChanged && theirs != ours {
 		// 两者都改了，且改的不一样 → 冲突！
-		dmp := diffmatchpatch.New()
-		theirDiffs := dmp.DiffMain(base, theirs, false)
-		ourDiffs := dmp.DiffMain(base, ours, false)
-
-		conflictMarked := s.generateConflictMarkers(base, theirs, ours, theirDiffs, ourDiffs)
-		conflictDetails := s.serializeConflictDetails(theirDiffs, ourDiffs)
-
-		return MergeResult{
-			HasConflict:           true,
-			ConflictMarkedContent: conflictMarked,
-			ConflictDetails:       conflictDetails,
-		}
+		return MergeResult{HasConflict: true}
 	}
 
 	// 4. 尝试自动合并（只在其中一方修改时）
@@ -73,49 +57,9 @@ func (s *MergeService) ThreeWayMerge(base, theirs, ours string) MergeResult {
 		}
 	}
 
-	// 默认返回 base（理论上不会到这里）
+	// 默认返回 theirs（防止为空）
 	return MergeResult{
 		HasConflict:   false,
-		MergedContent: base,
+		MergedContent: theirs,
 	}
-}
-
-// generateConflictMarkers 生成带冲突标记的内容
-// 使用标准的两路冲突标记格式（Git 风格）
-func (s *MergeService) generateConflictMarkers(base, theirs, ours string, theirDiffs, ourDiffs []diffmatchpatch.Diff) string {
-	var result strings.Builder
-
-	// 写入冲突标记开始
-	result.WriteString("<<<<<<< THEIRS (提交者的修改)\n")
-
-	// 写入 theirs 内容（提交者的修改）
-	result.WriteString(theirs)
-	if !strings.HasSuffix(theirs, "\n") {
-		result.WriteString("\n")
-	}
-
-	// 写入分隔符
-	result.WriteString("=======\n")
-
-	// 写入 ours 内容（当前线上版本）
-	result.WriteString(ours)
-	if !strings.HasSuffix(ours, "\n") {
-		result.WriteString("\n")
-	}
-
-	// 写入冲突标记结束
-	result.WriteString(">>>>>>> OURS (当前线上版本)\n")
-
-	return result.String()
-}
-
-// serializeConflictDetails 序列化冲突详情（JSON格式）
-func (s *MergeService) serializeConflictDetails(theirDiffs, ourDiffs []diffmatchpatch.Diff) string {
-	details := map[string]interface{}{
-		"theirChanges": len(theirDiffs),
-		"ourChanges":   len(ourDiffs),
-	}
-
-	jsonData, _ := json.Marshal(details)
-	return string(jsonData)
 }

@@ -172,7 +172,6 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 					"base_content":           baseContent,
 					"their_content":          theirContent,
 					"our_content":            ourContent,
-					"merged_content":         mergeResult.ConflictMarkedContent,
 					"has_conflict":           true,
 					"base_version_number":    baseVersionNumber,
 					"current_version_number": currentVersionNumber,
@@ -344,7 +343,7 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			// 更新submission状态
 			submission.Status = "conflict_detected"
 			submission.HasConflict = true
-			submission.MergeResult = mergeResult.ConflictMarkedContent
+			submission.MergeResult = ""
 			submission.MergedAgainstVersionID = art.CurrentVersionID
 			s.submissionRepo.Update(submission)
 
@@ -353,7 +352,7 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 				SubmissionID:          submission.ID,
 				ConflictWithVersionID: *art.CurrentVersionID,
 				Status:                "detected",
-				ConflictDetails:       mergeResult.ConflictDetails,
+				ConflictDetails:       "",
 				CreatedAt:             time.Now(),
 			}
 			s.submissionRepo.CreateConflict(conflict)
@@ -369,7 +368,6 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 					"base_content":           baseContent,
 					"their_content":          theirContent,
 					"our_content":            ourContent,
-					"merged_content":         mergeResult.ConflictMarkedContent,
 					"has_conflict":           true,
 					"base_version_number":    baseVersionNumber,
 					"current_version_number": currentVersionNumber,
@@ -723,11 +721,13 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 			realTimeHasConflict = mergeResult.HasConflict
 
 			if realTimeHasConflict {
-				realTimeMergeResult = mergeResult.ConflictMarkedContent
+				// 冲突直接返回三方原始内容，由前端生成冲突标记
 				// TODO: 生产环境优化 - 移除或使用结构化日志
 				log.Printf("[GetReviewDetail] 实时检测到冲突: submissionID=%d, base=%d, current=%d, proposed=%d",
 					submissionID, baseVersion.ID, currentVersion.ID, proposedVersion.ID)
 			} else {
+				// 无冲突返回合并后的最终内容
+				realTimeMergeResult = mergeResult.MergedContent
 				// TODO: 生产环境优化 - 移除或使用结构化日志
 				log.Printf("[GetReviewDetail] 实时检测无冲突: submissionID=%d", submissionID)
 			}
@@ -794,10 +794,9 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 		}
 
 		result["conflict_data"] = map[string]interface{}{
-			"base_content":  baseContent,
-			"their_content": theirContent,
-			"our_content":   ourContent,
-			// 不再返回 merged_content，由前端根据三方内容动态生成冲突标记
+			"base_content":           baseContent,
+			"their_content":          theirContent,
+			"our_content":            ourContent,
 			"has_conflict":           true,
 			"base_version_number":    baseVersionNumber,
 			"current_version_number": currentVersionNumber,
