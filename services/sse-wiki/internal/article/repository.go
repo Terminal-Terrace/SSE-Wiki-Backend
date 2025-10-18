@@ -3,8 +3,9 @@ package article
 import (
 	"time"
 
-	"gorm.io/gorm"
 	"terminal-terrace/sse-wiki/internal/model/article"
+
+	"gorm.io/gorm"
 )
 
 // ArticleRepository 文章仓储层
@@ -126,23 +127,6 @@ func (r *ArticleRepository) ListByModuleID(moduleID uint, offset, limit int) ([]
 	return articles, total, err
 }
 
-// Search 搜索文章
-func (r *ArticleRepository) Search(keyword string, offset, limit int) ([]article.Article, int64, error) {
-	var articles []article.Article
-	var total int64
-
-	query := r.db.Model(&article.Article{}).Where("title LIKE ?", "%"+keyword+"%")
-
-	// 获取总数
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	// 分页查询
-	err := query.Offset(offset).Limit(limit).Order("updated_at DESC").Find(&articles).Error
-	return articles, total, err
-}
-
 // VersionRepository 版本仓储层
 type VersionRepository struct {
 	db *gorm.DB
@@ -227,6 +211,15 @@ func (r *SubmissionRepository) GetByID(id uint) (*article.ReviewSubmission, erro
 
 func (r *SubmissionRepository) Update(submission *article.ReviewSubmission) error {
 	return r.db.Save(submission).Error
+}
+
+// ListByArticle 获取文章的所有提交（包含全部状态）
+func (r *SubmissionRepository) ListByArticle(articleID uint) ([]article.ReviewSubmission, error) {
+	var submissions []article.ReviewSubmission
+	err := r.db.Where("article_id = ?", articleID).
+		Order("created_at DESC").
+		Find(&submissions).Error
+	return submissions, err
 }
 
 // GetPendingByArticle 获取文章的待审核提交
