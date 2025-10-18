@@ -25,32 +25,19 @@ func NewMergeService() *MergeService {
 // base: 共同祖先版本
 // theirs: 提交者的修改
 // ours: 当前线上版本
+// TODO: 合并算法优化 - 当前实现是简化版的字符串级合并，未来可以实现更智能的行级合并或语义级合并
 func (s *MergeService) ThreeWayMerge(base, theirs, ours string) MergeResult {
-	dmp := diffmatchpatch.New()
+	// 1. 检查是否有实质性的修改冲突
+	// 如果 theirs 和 ours 都不等于 base，且它们也不相等，说明有冲突
+	theirsChanged := theirs != base
+	oursChanged := ours != base
 
-	// 1. 计算 base -> theirs 的patch
-	theirDiffs := dmp.DiffMain(base, theirs, false)
-	theirPatches := dmp.PatchMake(base, theirDiffs)
+	if theirsChanged && oursChanged && theirs != ours {
+		// 两者都改了，且改的不一样 → 冲突！
+		dmp := diffmatchpatch.New()
+		theirDiffs := dmp.DiffMain(base, theirs, false)
+		ourDiffs := dmp.DiffMain(base, ours, false)
 
-	// 2. 计算 base -> ours 的patch
-	ourDiffs := dmp.DiffMain(base, ours, false)
-	ourPatches := dmp.PatchMake(base, ourDiffs)
-
-	// 3. 尝试将两组patch都应用到base上
-	mergedTheirs, _ := dmp.PatchApply(theirPatches, base)
-	mergedBoth, conflicts := dmp.PatchApply(ourPatches, mergedTheirs)
-
-	// 4. 检查是否有冲突
-	hasConflict := false
-	for _, success := range conflicts {
-		if !success {
-			hasConflict = true
-			break
-		}
-	}
-
-	if hasConflict {
-		// 生成带冲突标记的内容
 		conflictMarked := s.generateConflictMarkers(base, theirs, ours, theirDiffs, ourDiffs)
 		conflictDetails := s.serializeConflictDetails(theirDiffs, ourDiffs)
 
@@ -61,21 +48,63 @@ func (s *MergeService) ThreeWayMerge(base, theirs, ours string) MergeResult {
 		}
 	}
 
+	// 4. 尝试自动合并（只在其中一方修改时）
+	if !theirsChanged && oursChanged {
+		// 只有 ours 改了，使用 ours
+		return MergeResult{
+			HasConflict:   false,
+			MergedContent: ours,
+		}
+	}
+
+	if theirsChanged && !oursChanged {
+		// 只有 theirs 改了，使用 theirs
+		return MergeResult{
+			HasConflict:   false,
+			MergedContent: theirs,
+		}
+	}
+
+	// 5. 两者都没改，或者改的一样
+	if theirs == ours {
+		return MergeResult{
+			HasConflict:   false,
+			MergedContent: theirs,
+		}
+	}
+
+	// 默认返回 base（理论上不会到这里）
 	return MergeResult{
 		HasConflict:   false,
-		MergedContent: mergedBoth,
+		MergedContent: base,
 	}
 }
 
 // generateConflictMarkers 生成带冲突标记的内容
+// 使用标准的两路冲突标记格式（Git 风格）
 func (s *MergeService) generateConflictMarkers(base, theirs, ours string, theirDiffs, ourDiffs []diffmatchpatch.Diff) string {
 	var result strings.Builder
 
+	// 写入冲突标记开始
 	result.WriteString("<<<<<<< THEIRS (提交者的修改)\n")
+
+	// 写入 theirs 内容（提交者的修改）
 	result.WriteString(theirs)
-	result.WriteString("\n=======\n")
+	if !strings.HasSuffix(theirs, "\n") {
+		result.WriteString("\n")
+	}
+
+	// 写入分隔符
+	result.WriteString("=======\n")
+
+	// 写入 ours 内容（当前线上版本）
 	result.WriteString(ours)
-	result.WriteString("\n>>>>>>> OURS (当前线上版本)\n")
+	if !strings.HasSuffix(ours, "\n") {
+		result.WriteString("\n")
+	}
+
+	// 写入冲突标记结束
+	result.WriteString(">>>>>>> OURS (当前线上版本)\n")
 
 	return result.String()
 }
