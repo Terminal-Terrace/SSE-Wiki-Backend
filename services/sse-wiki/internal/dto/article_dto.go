@@ -60,21 +60,6 @@ type ReviewActionRequest struct {
 	MergedContent *string `json:"merged_content"` // 仅当手动解决冲突时需要
 }
 
-// BatchReviewRequest 批量审核请求
-type BatchReviewRequest struct {
-	SubmissionIDs []uint `json:"submission_ids" binding:"required"`
-	Action        string `json:"action" binding:"required,oneof=approve reject"`
-}
-
-// ArticleListQuery 文章列表查询参数
-type ArticleListQuery struct {
-	ModuleID uint   `form:"module_id"`
-	Page     int    `form:"page" binding:"min=1"`
-	PageSize int    `form:"page_size" binding:"min=1,max=100"`
-	Keyword  string `form:"keyword"`
-	Tag      string `form:"tag"`
-}
-
 // ArticleResponse 文章响应
 type ArticleResponse struct {
 	ID               uint     `json:"id"`
@@ -115,9 +100,10 @@ type SubmissionResponse struct {
 	Status            string `json:"status"`
 	CommitMessage     string `json:"commit_message"`
 	HasConflict       bool   `json:"has_conflict"`
-	AIScore           *int   `json:"ai_score,omitempty"`
-	CreatedAt         string `json:"created_at"`
-	ReviewedAt        string `json:"reviewed_at,omitempty"`
+	// TODO: AI评分功能 - AI评分字段，后续接入AI审核服务时使用
+	AIScore    *int   `json:"ai_score,omitempty"`
+	CreatedAt  string `json:"created_at"`
+	ReviewedAt string `json:"reviewed_at,omitempty"`
 }
 
 // ConflictData 冲突数据
