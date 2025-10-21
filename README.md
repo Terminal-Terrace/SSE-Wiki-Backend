@@ -29,7 +29,7 @@ SSE-Wiki-Backend/
 - pkg 外部可使用的工具
 - cmd 可执行的文件/命令
 
-service最好不要导出东西, 导入package里的就可以了. 
+service最好不要导出东西, 导入package里的就可以了.
 
 ## 快速开始
 
@@ -39,7 +39,7 @@ service最好不要导出东西, 导入package里的就可以了.
 
 ### 配置
 
-`.env.example` 为环境变量模板，需要配置拷贝并命名为`.env`，完成内部相关配置
+`.env.example` 为环境变量模板，需要配置拷贝并命名为 `.env`，完成内部相关配置
 
 ### 运行
 
@@ -52,19 +52,19 @@ make run
 
 或者在根目录运行
 
-调用子包的`make install`
+调用子包的 `make install`
 
 ```sh
 make install 子包名
 ```
 
-调用子包的`make run`
+调用子包的 `make run`
 
 ```sh
 make run 子包名
 ```
 
-如果没有make, 也可以跟平时一样运行. 
+如果没有make, 也可以跟平时一样运行.
 
 ```sh
 go mod tidy
@@ -73,7 +73,6 @@ go run xxx
 
 在window系统中双击run.bat即可运行
 
-
 ## 数据库
 
 项目使用 GORM AutoMigrate 自动同步数据库表结构。
@@ -81,6 +80,7 @@ go run xxx
 ### 新增模型
 
 1. 创建模型文件
+
 ```go
 // services/auth-service/internal/model/role/role.go
 package role
@@ -96,6 +96,7 @@ func (Role) TableName() string {
 ```
 
 2. 注册到 model.go
+
 ```go
 func GetModels() []interface{} {
     return []interface{}{
@@ -106,6 +107,7 @@ func GetModels() []interface{} {
 ```
 
 3. 启动服务自动创建表
+
 ```bash
 go run cmd/server/main.go
 ```
@@ -133,4 +135,10 @@ DATABASE_PASSWORD=your_password
 
 - authMiddleware
 
-认证中间件, 所有的服务应该都使用这个中间件. 处理用户鉴权. 顺便将一些用户信息存到上下文里. 
+认证中间件, 所有的服务应该都使用这个中间件. 处理用户鉴权. 顺便将一些用户信息存到上下文里.
+
+
+
+### 多文件存储
+
+放到sse-wiki/uploads/文件夹下

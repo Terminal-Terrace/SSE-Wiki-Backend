@@ -49,3 +49,6 @@ coverage.out
 services/*/docs/docs.go
 services/*/docs/swagger.json
 services/*/docs/swagger.yaml
+
+# 文件存储
+services/sse-wiki/uploads/*
