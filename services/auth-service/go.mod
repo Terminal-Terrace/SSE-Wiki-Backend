@@ -15,6 +15,7 @@ require (
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
 	golang.org/x/crypto v0.42.0
+	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.31.0
 	terminal-terrace/database v0.0.0
 )
@@ -77,7 +78,6 @@ require (
 	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/tools v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
-	gorm.io/driver/postgres v1.6.0 // indirect
 )
 
 replace terminal-terrace/database => ../../packages/database
