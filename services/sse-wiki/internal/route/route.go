@@ -13,6 +13,7 @@ import (
 	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/handler"
 	"terminal-terrace/sse-wiki/internal/module"
+	"terminal-terrace/sse-wiki/internal/preference"
 	"terminal-terrace/sse-wiki/internal/service"
 )
 
@@ -38,6 +39,9 @@ func initRoute(r *gin.Engine, db *gorm.DB) {
 
 	// 文章管理路由
 	article.SetupArticleRoutes(apiV1, db)
+
+	// 用户偏好路由
+	preference.SetupPreferRouter(apiV1, db)
 }
 
 func SetupRouter() *gin.Engine {

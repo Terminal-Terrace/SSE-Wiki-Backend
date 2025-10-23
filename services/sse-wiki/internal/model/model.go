@@ -4,6 +4,7 @@ import (
 	"terminal-terrace/sse-wiki/internal/model/article"
 	"terminal-terrace/sse-wiki/internal/model/discussion"
 	"terminal-terrace/sse-wiki/internal/model/module"
+	"terminal-terrace/sse-wiki/internal/model/preference"
 	"terminal-terrace/sse-wiki/internal/model/user"
 
 	"gorm.io/gorm"
@@ -33,5 +34,8 @@ func InitTable(db *gorm.DB) error {
 		// 讨论相关模型
 		&discussion.Discussion{},
 		&discussion.DiscussionComment{},
+
+		// 喜好相关模型
+		&preference.UserPreference{},
 	)
 }
