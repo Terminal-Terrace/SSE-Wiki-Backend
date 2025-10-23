@@ -7,7 +7,10 @@ import (
 
 func SetupPreferRouter(r *gin.RouterGroup, db *gorm.DB) {
 	handler := NewPreferHandler(db, 0.95)
-	r.POST("/get_refer", handler.GetPrefer)
-	r.POST("/get_best_refer", handler.GetBestRefer)
-	r.POST("/update_refer", handler.UpdatePreference)
+
+	r.GET("/get_prefer", handler.GetPrefer)
+	r.GET("/get_best_prefer", handler.GetBestPrefer)
+
+	r.POST("/update_prefer", handler.UpdatePreference)
+	r.POST("/set_prefer", handler.SetPreference)
 }
