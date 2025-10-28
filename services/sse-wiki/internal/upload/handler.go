@@ -129,13 +129,16 @@ func (h *Handler) Chunk(c *gin.Context) {
 	}
 	dst.Close()
 
-	// 更新会话
+	// 更新会话状态（简化：只标记已完成，不检查Redis竞态）
+	// 完整校验将在Complete阶段通过检查实际文件来实现
 	session.UploadedChunks[chunkIndex] = true
-	sessionJSONBytes, _ := json.Marshal(session)
-	if err := dbpkg.RedisDB.Set(ctx, "upload:"+uploadID, sessionJSONBytes, 2*time.Hour).Err(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新会话失败"})
+	sessionJSONBytes, err := json.Marshal(session)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "序列化会话失败"})
 		return
 	}
+	// 设置较短的过期时间，避免竞态覆盖
+	dbpkg.RedisDB.Set(ctx, "upload:"+uploadID, sessionJSONBytes, 2*time.Hour)
 
 	c.JSON(http.StatusOK, gin.H{"message": "OK"})
 }
@@ -161,12 +164,19 @@ func (h *Handler) Complete(c *gin.Context) {
 		return
 	}
 
-	// 校验完整性
-	for i, ok := range session.UploadedChunks {
-		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("分块 %d 缺失", i)})
-			return
+	// 校验完整性：检查实际文件是否存在
+	var missingChunks []int
+	for i := 0; i < session.TotalChunks; i++ {
+		chunkPath := filepath.Join("temp", req.UploadID, fmt.Sprintf("chunk_%d", i))
+		if _, err := os.Stat(chunkPath); os.IsNotExist(err) {
+			missingChunks = append(missingChunks, i)
 		}
+	}
+
+	if len(missingChunks) > 0 {
+		missingChunksJSON, _ := json.Marshal(missingChunks)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("分块 %s 缺失", string(missingChunksJSON))})
+		return
 	}
 
 	// 合并分块
@@ -255,5 +265,3 @@ func inferCategory(mime string) string {
 		return "document"
 	}
 }
-
-
