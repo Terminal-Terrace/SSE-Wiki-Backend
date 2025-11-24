@@ -1,0 +1,10 @@
+{
+  "github": {
+    "owner": "YOUR_GITHUB_OWNER",
+    "repo": "SSE-Wiki-proto",
+    "branch": "main"
+  },
+  "services": [
+    "authservice"
+  ]
+}
