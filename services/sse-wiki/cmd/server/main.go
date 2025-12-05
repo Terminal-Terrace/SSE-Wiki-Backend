@@ -6,6 +6,7 @@ import (
 
 	"terminal-terrace/sse-wiki/config"
 	"terminal-terrace/sse-wiki/internal/database"
+	grpcserver "terminal-terrace/sse-wiki/internal/grpc"
 	"terminal-terrace/sse-wiki/internal/model"
 	"terminal-terrace/sse-wiki/internal/route"
 
@@ -60,11 +61,33 @@ func main() {
 	// 	log.Printf("[sse-wiki] Swagger 文档更新失败: %v", err)
 	// }
 
-	// 4. 设置路由
+	// 4. 启动 gRPC server (goroutine)
+	go func() {
+		grpcPort := config.Conf.GRPC.Port
+		if grpcPort == 0 {
+			grpcPort = 50052 // 默认端口
+		}
+
+		moduleService := grpcserver.NewModuleServiceImpl()
+		articleService := grpcserver.NewArticleServiceImpl()
+		reviewService := grpcserver.NewReviewServiceImpl()
+		discussionService := grpcserver.NewDiscussionServiceImpl()
+
+		server, err := grpcserver.NewServer(grpcPort, moduleService, articleService, reviewService, discussionService)
+		if err != nil {
+			log.Fatalf("[sse-wiki] gRPC server 启动失败: %v", err)
+		}
+		log.Printf("[sse-wiki] gRPC server 启动在端口 :%d", grpcPort)
+		if err := server.Start(); err != nil {
+			log.Fatalf("[sse-wiki] gRPC server 运行失败: %v", err)
+		}
+	}()
+
+	// 5. 设置路由
 	r := route.SetupRouter()
 
-	// 5. 启动服务
-	log.Printf("[sse-wiki] 服务启动在端口 :8080")
+	// 6. 启动 REST server (blocking)
+	log.Printf("[sse-wiki] REST server 启动在端口 :8080")
 	r.Run(":8080")
 }
 
