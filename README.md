@@ -123,6 +123,37 @@ DATABASE_USERNAME=postgres
 DATABASE_PASSWORD=your_password
 ```
 
+## Proto 同步
+
+使用 `cpb` 工具从 GitHub 同步 proto 文件并生成 Go 代码。
+
+### 前提条件
+
+- Node.js 18+ 和 pnpm
+- protoc (`brew install protobuf`)
+- protoc-gen-go (`go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`)
+- protoc-gen-go-grpc (`go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest`)
+
+### 首次配置
+
+```bash
+# 1. 安装 cpb 工具
+cd ../SSE-Wiki-Nodejs/packages/pb-compiler
+pnpm install && pnpm build && pnpm link --global
+
+# 2. 配置 GitHub 访问
+cpb login <your-github-token>
+cpb config --owner Terminal-Terrace --repo SSE-WIKI-Proto
+```
+
+### 同步 Proto 文件
+
+```bash
+cd services/auth-service
+cpb sync --branch main
+cpb gen-go --go-opt "Mauthservice/authservice.proto=terminal-terrace/auth-service/internal/pb/authservice"
+```
+
 ## 暂时的预期
 
 ### auth-service
