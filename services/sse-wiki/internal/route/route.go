@@ -11,9 +11,12 @@ import (
 
 	"terminal-terrace/sse-wiki/internal/article"
 	"terminal-terrace/sse-wiki/internal/database"
+	fileroute "terminal-terrace/sse-wiki/internal/file"
+	"terminal-terrace/sse-wiki/internal/discussion"
 	"terminal-terrace/sse-wiki/internal/handler"
 	"terminal-terrace/sse-wiki/internal/module"
 	"terminal-terrace/sse-wiki/internal/service"
+	upload "terminal-terrace/sse-wiki/internal/upload"
 )
 
 func initRoute(r *gin.Engine, db *gorm.DB) {
@@ -38,6 +41,15 @@ func initRoute(r *gin.Engine, db *gorm.DB) {
 
 	// 文章管理路由
 	article.SetupArticleRoutes(apiV1, db)
+
+	// 文件访问路由（在线预览 / 下载 / 信息）
+	fileroute.RegisterRoutes(apiV1, db)
+
+	// 上传路由（初始化 / 分块 / 完成合并）
+	upload.RegisterRoutes(apiV1, db)
+
+	// 讨论区路由
+	discussion.SetupDiscussionRoutes(apiV1, db)
 }
 
 func SetupRouter() *gin.Engine {

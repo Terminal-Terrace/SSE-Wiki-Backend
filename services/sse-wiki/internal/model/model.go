@@ -3,6 +3,7 @@ package model
 import (
 	"terminal-terrace/sse-wiki/internal/model/article"
 	"terminal-terrace/sse-wiki/internal/model/discussion"
+	filemodel "terminal-terrace/sse-wiki/internal/model/file"
 	"terminal-terrace/sse-wiki/internal/model/module"
 	"terminal-terrace/sse-wiki/internal/model/user"
 
@@ -33,5 +34,9 @@ func InitTable(db *gorm.DB) error {
 		// 讨论相关模型
 		&discussion.Discussion{},
 		&discussion.DiscussionComment{},
+
+		// 文件相关模型
+		&filemodel.File{},
+		&filemodel.ArticleVersionFile{},
 	)
 }

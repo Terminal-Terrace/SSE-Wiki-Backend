@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package authservice;
+
+message AuthUser {
+    string user_id = 1;
+    string username = 2;
+    string email = 3;
+    string role = 4;
+}
+
+enum CodeType {
+    REGISTRATION = 0;
+    PASSWORD_RESET = 1;
+}
+
+message CodeRequest {
+    string email = 1;
+    CodeType type = 2;
+}
+
+message CodeResponse {
+}
+
+message PreloginRequest {
+    string redirect_url = 1;
+}
+
+message PreloginResponse {
+    string state = 1;
+}
+
+enum LoginType {
+    STANDARD = 0;
+    GITHUB = 1;
+    SSE_MARKET = 2;
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+    string code = 3;
+    LoginType type = 4;
+    string state = 5;
+}
+
+message LoginResponse {
+    string access_token = 1;
+    string refresh_token = 2;
+    string redirect_url = 3;
+}
+
+message LogoutRequest {
+    string user_id = 1;
+}
+
+message LogoutResponse {
+}
+
+message InfoRequest {
+    string user_id = 1;
+}
+
+message InfoResponse {
+    AuthUser user = 1;
+}
+
+message RefreshRequest {
+    string refresh_token = 1;
+}
+
+message RefreshResponse {
+    string access_token = 1;
+    string refresh_token = 2;
+}
+
+message RegisterRequest {
+    string username = 1;
+    string password = 2;
+    string email = 4;
+    string code = 5;
+}
+
+message RegisterResponse {
+    string refresh_token = 1;
+    string redirect_url = 2;
+}
+
+service AuthService {
+    rpc Prelogin (PreloginRequest) returns (PreloginResponse);
+    rpc SendCode (CodeRequest) returns (CodeResponse);
+    rpc Login (LoginRequest) returns (LoginResponse);
+    rpc Logout (LogoutRequest) returns (LogoutResponse);
+    rpc GetUserInfo (InfoRequest) returns (InfoResponse);
+    rpc RefreshToken (RefreshRequest) returns (RefreshResponse);
+    rpc Register (RegisterRequest) returns (RegisterResponse);
+}

@@ -10,13 +10,15 @@ import (
 
 	"terminal-terrace/auth-service/config"
 	"terminal-terrace/auth-service/internal/database"
+	grpcserver "terminal-terrace/auth-service/internal/grpc"
 	"terminal-terrace/auth-service/internal/model"
 	"terminal-terrace/auth-service/internal/route"
+	"terminal-terrace/email"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	_ "terminal-terrace/auth-service/docs" // Swagger 文档
+	// _ "terminal-terrace/auth-service/docs" // Swagger 文档 (暂时禁用)
 )
 
 // @title Auth Service API
@@ -61,11 +63,31 @@ func main() {
 		log.Printf("[auth-service] Swagger 文档更新失败: %v", err)
 	}
 
-	// 4. 设置路由
+	// 4. 初始化邮件客户端（gRPC 服务需要）
+	mailer := email.NewClient(&config.Conf.Smtp)
+
+	// 5. 启动 gRPC server (goroutine)
+	go func() {
+		grpcPort := config.Conf.GRPC.Port
+		if grpcPort == 0 {
+			grpcPort = 50051 // 默认端口
+		}
+		authService := grpcserver.NewAuthServiceImpl(mailer)
+		server, err := grpcserver.NewServer(grpcPort, authService)
+		if err != nil {
+			log.Fatalf("[auth-service] gRPC server 启动失败: %v", err)
+		}
+		log.Printf("[auth-service] gRPC server 启动在端口 :%d", grpcPort)
+		if err := server.Start(); err != nil {
+			log.Fatalf("[auth-service] gRPC server 运行失败: %v", err)
+		}
+	}()
+
+	// 6. 设置 REST 路由
 	r := route.SetupRouter()
 
-	// 5. 启动服务
-	log.Printf("[auth-service] 服务启动在端口 :8081")
+	// 7. 启动 REST server (blocking)
+	log.Printf("[auth-service] REST server 启动在端口 :8081")
 	r.Run(":8081")
 }
 

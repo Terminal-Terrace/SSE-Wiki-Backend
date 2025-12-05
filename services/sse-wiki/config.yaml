@@ -8,6 +8,9 @@ server:
   read_timeout: 30
   write_timeout: 30
 
+grpc:
+  port: 50052
+
 database:
   driver: "postgres"
   host: "localhost"

@@ -1,0 +1,6 @@
+{
+  "services": [
+    "ssewiki"
+  ],
+  "serverAddress": "localhost:50052"
+}

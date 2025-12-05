@@ -92,7 +92,8 @@ func buildDSN(c *PostgresConfig) string {
 	if c.SSLMode {
 		sslmode = "require"
 	}
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
+	// 使用带引号的格式，避免空密码导致解析问题
+	return fmt.Sprintf("host=%s user=%s password='%s' dbname='%s' port=%d sslmode=%s",
 		c.Host, c.Username, c.Password, c.Database, c.Port, sslmode)
 }
 

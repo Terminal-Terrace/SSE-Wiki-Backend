@@ -45,7 +45,7 @@ func (h *RefreshTokenHandler) Handle(c *gin.Context) {
 	}
 
 	// 设置新的 refresh token 到 cookie (httpOnly)
-	c.SetCookie("refresh_token", result.newRefreshToken, 3600*24*7, "/", "", false, true)
+	c.SetCookie("refresh_token", result.NewRefreshToken, 3600*24*7, "/", "", false, true)
 
 	// 只返回 access token（refresh token 不暴露给前端）
 	dto.SuccessResponse(c, RefreshTokenResponse{
