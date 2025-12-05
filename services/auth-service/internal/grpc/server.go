@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	pb "terminal-terrace/auth-service/internal/pb/authservice"
+	pb "terminal-terrace/auth-service/protobuf/proto/authservice"
 
 	"google.golang.org/grpc"
 )

@@ -41,6 +41,10 @@ service最好不要导出东西, 导入package里的就可以了.
 
 `.env.example` 为环境变量模板，需要配置拷贝并命名为 `.env`，完成内部相关配置
 
+> ⚠️ **常见坑：JWT 密钥不要加引号**
+>
+> `godotenv` 会把引号当成字面内容，如果写成 `JWT_SECRET='abc'`，Go 生成的 token 会携带 `'` 符号，导致 Node 网关无法验证。请直接写无引号的明文，例如 `JWT_SECRET=abc123`，并保证 Node/Go 使用同一份密钥。
+
 ### 运行
 
 在子包运行
