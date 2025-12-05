@@ -8,12 +8,17 @@ import (
 // AppConfig 应用配置结构
 type AppConfig struct {
 	Server   ServerConfig      `koanf:"server"`
+	GRPC     GRPCConfig        `koanf:"grpc"`
 	Database DatabaseConfig    `koanf:"database"`
 	Redis    RedisConfig       `koanf:"redis"`
 	Log      LogConfig         `koanf:"log"`
 	JWT      JWTConfig         `koanf:"jwt"`
 	Smtp     email.Config      `koanf:"smtp"`
 	Github   GithubOAuthConfig `koanf:"github"`
+}
+
+type GRPCConfig struct {
+	Port int `koanf:"port"`
 }
 
 type ServerConfig struct {
