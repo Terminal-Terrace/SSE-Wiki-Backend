@@ -16,14 +16,14 @@ func NewRefreshTokenService(repo *RefreshTokenRepository) *RefreshTokenService {
 	}
 }
 
-// refreshTokenResult 内部返回结果（包含新的 refresh token）
-type refreshTokenResult struct {
+// RefreshTokenResult 返回结果（包含新的 refresh token）
+type RefreshTokenResult struct {
 	AccessToken     string
-	newRefreshToken string // 小写，不导出，仅内部使用
+	NewRefreshToken string
 }
 
 // RefreshToken 刷新访问令牌
-func (s *RefreshTokenService) RefreshToken(req RefreshTokenRequest) (*refreshTokenResult, *response.BusinessError) {
+func (s *RefreshTokenService) RefreshToken(req RefreshTokenRequest) (*RefreshTokenResult, *response.BusinessError) {
 	// 1. 验证 refresh token
 	tokenData, err := s.repo.Get(req.RefreshToken)
 	if err != nil {
@@ -67,8 +67,8 @@ func (s *RefreshTokenService) RefreshToken(req RefreshTokenRequest) (*refreshTok
 		)
 	}
 
-	return &refreshTokenResult{
+	return &RefreshTokenResult{
 		AccessToken:     accessToken,
-		newRefreshToken: newRefreshToken,
+		NewRefreshToken: newRefreshToken,
 	}, nil
 }
