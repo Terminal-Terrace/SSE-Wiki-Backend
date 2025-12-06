@@ -3,10 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
 
 	"terminal-terrace/auth-service/config"
 	"terminal-terrace/auth-service/internal/database"
@@ -17,7 +13,6 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
 	// _ "terminal-terrace/auth-service/docs" // Swagger 文档 (暂时禁用)
 )
 
@@ -58,10 +53,10 @@ func main() {
 		log.Fatalf("数据库表初始化失败: %v", err)
 	}
 
-	// 3.2 更新 Swagger 文档
-	if err := refreshSwaggerDocs(); err != nil {
-		log.Printf("[auth-service] Swagger 文档更新失败: %v", err)
-	}
+	// // 3.2 更新 Swagger 文档
+	// if err := refreshSwaggerDocs(); err != nil {
+	// 	log.Printf("[auth-service] Swagger 文档更新失败: %v", err)
+	// }
 
 	// 4. 初始化邮件客户端（gRPC 服务需要）
 	mailer := email.NewClient(&config.Conf.Smtp)
@@ -128,46 +123,46 @@ func ensureDatabaseExists() error {
 	return sqlDB.Close()
 }
 
-// refreshSwaggerDocs 生成最新的 Swagger 文档
-func refreshSwaggerDocs() error {
-	serviceRoot, err := resolveServiceRoot()
-	if err != nil {
-		return err
-	}
+// // refreshSwaggerDocs 生成最新的 Swagger 文档
+// func refreshSwaggerDocs() error {
+// 	serviceRoot, err := resolveServiceRoot()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	args := []string{
-		"init",
-		"-g", filepath.ToSlash(filepath.Join("cmd", "server", "main.go")),
-		"-o", filepath.ToSlash("docs"),
-		"--parseDependency",
-		"--parseInternal",
-	}
+// 	args := []string{
+// 		"init",
+// 		"-g", filepath.ToSlash(filepath.Join("cmd", "server", "main.go")),
+// 		"-o", filepath.ToSlash("docs"),
+// 		"--parseDependency",
+// 		"--parseInternal",
+// 	}
 
-	if err := runCommand(serviceRoot, "swag", args...); err != nil {
-		log.Printf("[auth-service] swag 命令执行失败，尝试使用 go run 回退: %v", err)
-		fallbackArgs := append([]string{"run", "github.com/swaggo/swag/cmd/swag@latest"}, args...)
-		if err := runCommand(serviceRoot, "go", fallbackArgs...); err != nil {
-			return fmt.Errorf("使用 go run 更新 Swagger 失败: %w", err)
-		}
-	}
+// 	if err := runCommand(serviceRoot, "swag", args...); err != nil {
+// 		log.Printf("[auth-service] swag 命令执行失败，尝试使用 go run 回退: %v", err)
+// 		fallbackArgs := append([]string{"run", "github.com/swaggo/swag/cmd/swag@latest"}, args...)
+// 		if err := runCommand(serviceRoot, "go", fallbackArgs...); err != nil {
+// 			return fmt.Errorf("使用 go run 更新 Swagger 失败: %w", err)
+// 		}
+// 	}
 
-	log.Printf("[auth-service] Swagger 文档已同步")
-	return nil
-}
+// 	log.Printf("[auth-service] Swagger 文档已同步")
+// 	return nil
+// }
 
-func runCommand(dir, name string, args ...string) error {
-	cmd := exec.Command(name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = dir
-	return cmd.Run()
-}
+// func runCommand(dir, name string, args ...string) error {
+// 	cmd := exec.Command(name, args...)
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	cmd.Dir = dir
+// 	return cmd.Run()
+// }
 
-func resolveServiceRoot() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", fmt.Errorf("无法获取当前文件路径")
-	}
+// func resolveServiceRoot() (string, error) {
+// 	_, filename, _, ok := runtime.Caller(0)
+// 	if !ok {
+// 		return "", fmt.Errorf("无法获取当前文件路径")
+// 	}
 
-	return filepath.Clean(filepath.Join(filepath.Dir(filename), "..", "..")), nil
-}
+// 	return filepath.Clean(filepath.Join(filepath.Dir(filename), "..", "..")), nil
+// }
