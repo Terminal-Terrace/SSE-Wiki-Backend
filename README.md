@@ -155,7 +155,7 @@ cpb config --owner Terminal-Terrace --repo SSE-WIKI-Proto
 ```bash
 cd services/auth-service
 cpb sync --branch <branch-name>
-cpb gen-go --go-opt "Mauth_service/auth_service.proto=terminal-terrace/auth-service/internal/pb/auth_service"
+cpb gen-go --go-opt "Mproto/auth_service/auth_service.proto=terminal-terrace/auth-service/protobuf/proto/auth_service"
 ```
 
 ```bash

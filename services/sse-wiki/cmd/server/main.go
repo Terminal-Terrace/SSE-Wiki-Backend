@@ -13,7 +13,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	_ "terminal-terrace/sse-wiki/docs"
+	// _ "terminal-terrace/sse-wiki/docs"
 )
 
 // @title SSE-Wiki Service API
@@ -41,7 +41,7 @@ func main() {
 	config.MustLoad("config.yaml")
 
 	// 1.2 用命令行初始项目
-	config.InitProgram()
+	// config.InitProgram() 暂时不用swagger
 
 	// 2. 确保数据库存在
 	if err := ensureDatabaseExists(); err != nil {
