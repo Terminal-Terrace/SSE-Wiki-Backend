@@ -5,7 +5,7 @@ import (
 
 	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/discussion"
-	pb "terminal-terrace/sse-wiki/protobuf/proto/ssewiki"
+	pb "terminal-terrace/sse-wiki/protobuf/proto/discussion_service"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
