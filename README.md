@@ -154,8 +154,18 @@ cpb config --owner Terminal-Terrace --repo SSE-WIKI-Proto
 
 ```bash
 cd services/auth-service
-cpb sync --branch main
-cpb gen-go --go-opt "Mauthservice/authservice.proto=terminal-terrace/auth-service/internal/pb/authservice"
+cpb sync --branch <branch-name>
+cpb gen-go --go-opt "Mproto/auth_service/auth_service.proto=terminal-terrace/auth-service/protobuf/proto/auth_service"
+```
+
+```bash
+cd services/sse-wiki
+cpb sync --bran <branch-name>
+cpb gen-go \
+  --go-opt "Mproto/article_service/article_service.proto=terminal-terrace/sse-wiki/protobuf/proto/article_service" \
+  --go-opt "Mproto/module_service/module_service.proto=terminal-terrace/sse-wiki/protobuf/proto/module_service" \
+  --go-opt "Mproto/review_service/review_service.proto=terminal-terrace/sse-wiki/protobuf/proto/review_service" \
+  --go-opt "Mproto/discussion_service/discussion_service.proto=terminal-terrace/sse-wiki/protobuf/proto/discussion_service"
 ```
 
 ## 暂时的预期
@@ -172,8 +182,6 @@ cpb gen-go --go-opt "Mauthservice/authservice.proto=terminal-terrace/auth-servic
 
 认证中间件, 所有的服务应该都使用这个中间件. 处理用户鉴权. 顺便将一些用户信息存到上下文里.
 
-
-
 ### 多文件存储
 
-放到sse-wiki/uploads/文件夹下
+改用OSS存储服务，go 后端无须感知文件内容。

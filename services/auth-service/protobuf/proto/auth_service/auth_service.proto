@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package authservice;
+package auth_service;
 
 message AuthUser {
     string user_id = 1;
@@ -95,3 +95,4 @@ service AuthService {
     rpc RefreshToken (RefreshRequest) returns (RefreshResponse);
     rpc Register (RegisterRequest) returns (RegisterResponse);
 }
+

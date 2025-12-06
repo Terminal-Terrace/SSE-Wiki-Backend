@@ -6,7 +6,7 @@ import (
 	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/login"
-	pb "terminal-terrace/auth-service/protobuf/proto/authservice"
+	pb "terminal-terrace/auth-service/protobuf/proto/auth_service"
 	"terminal-terrace/auth-service/internal/pkg"
 	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/auth-service/internal/register"

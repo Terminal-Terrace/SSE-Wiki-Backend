@@ -1,6 +1,9 @@
 {
   "services": [
-    "ssewiki"
+    "article_service",
+    "module_service",
+    "review_service",
+    "discussion_service"
   ],
   "serverAddress": "localhost:50052"
 }

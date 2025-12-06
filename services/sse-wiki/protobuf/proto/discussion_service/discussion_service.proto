@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package discussion_service;
+
+// ============================================================================
+// Common Messages
+// ============================================================================
+
+message UserInfo {
+  uint32 id = 1;
+  string username = 2;
+}
+
+// ============================================================================
+// Discussion Messages
+// ============================================================================
+
+message Comment {
+  uint32 id = 1;
+  uint32 discussion_id = 2;
+  uint32 parent_id = 3;
+  string content = 4;
+  uint32 created_by = 5;
+  UserInfo creator = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  bool is_deleted = 9;
+  repeated Comment replies = 10;
+  int32 reply_count = 11;
+}
+
+message Discussion {
+  uint32 id = 1;
+  uint32 article_id = 2;
+  string title = 3;
+  string created_at = 4;
+  string updated_at = 5;
+  repeated Comment comments = 6;
+  int32 comment_count = 7;
+}
+
+// ============================================================================
+// Discussion Service Requests/Responses
+// ============================================================================
+
+message GetArticleCommentsRequest {
+  uint32 article_id = 1;
+}
+
+message GetArticleCommentsResponse {
+  repeated Comment comments = 1;
+  int32 total = 2;
+}
+
+message CreateCommentRequest {
+  uint32 article_id = 1;
+  string content = 2;
+  uint32 user_id = 3;
+}
+
+message CreateCommentResponse {
+  Comment comment = 1;
+}
+
+message ReplyCommentRequest {
+  uint32 comment_id = 1;
+  string content = 2;
+  uint32 user_id = 3;
+}
+
+message ReplyCommentResponse {
+  Comment comment = 1;
+}
+
+message UpdateCommentRequest {
+  uint32 comment_id = 1;
+  string content = 2;
+  uint32 user_id = 3;
+}
+
+message UpdateCommentResponse {
+  Comment comment = 1;
+}
+
+message DeleteCommentRequest {
+  uint32 comment_id = 1;
+  uint32 user_id = 2;
+}
+
+message DeleteCommentResponse {}
+
+// ============================================================================
+// Service
+// ============================================================================
+
+service DiscussionService {
+  rpc GetArticleComments(GetArticleCommentsRequest) returns (GetArticleCommentsResponse);
+  rpc CreateComment(CreateCommentRequest) returns (CreateCommentResponse);
+  rpc ReplyComment(ReplyCommentRequest) returns (ReplyCommentResponse);
+  rpc UpdateComment(UpdateCommentRequest) returns (UpdateCommentResponse);
+  rpc DeleteComment(DeleteCommentRequest) returns (DeleteCommentResponse);
+}
