@@ -7,7 +7,7 @@ import (
 	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/dto"
 	articleModel "terminal-terrace/sse-wiki/internal/model/article"
-	pb "terminal-terrace/sse-wiki/protobuf/proto/ssewiki"
+	pb "terminal-terrace/sse-wiki/protobuf/proto/review_service"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

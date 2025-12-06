@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package review_service;
+
+// ============================================================================
+// Shared Messages (from Article domain)
+// ============================================================================
+
+message Article {
+  uint32 id = 1;
+  string title = 2;
+  uint32 module_id = 3;
+  string content = 4;
+  string commit_message = 5;
+  int32 version_number = 6;
+  uint32 current_version_id = 7;
+  string current_user_role = 8;
+  bool is_review_required = 9;
+  uint32 view_count = 10;
+  repeated string tags = 11;
+  repeated PendingSubmission pending_submissions = 12;
+  uint32 created_by = 13;
+  string created_at = 14;
+  string updated_at = 15;
+  repeated HistoryEntry history = 16;
+}
+
+message HistoryEntry {
+  string entry_type = 1;
+  uint32 entry_id = 2;
+  uint32 version_id = 3;
+  uint32 submission_id = 4;
+  string status = 5;
+  string submission_status = 6;
+  uint32 base_version_id = 7;
+  uint32 merged_against_version_id = 8;
+  bool has_conflict = 9;
+  string merge_result = 10;
+  string commit_message = 11;
+  uint32 author_id = 12;
+  uint32 reviewed_by = 13;
+  string review_notes = 14;
+  string created_at = 15;
+  string reviewed_at = 16;
+}
+
+message PendingSubmission {
+  uint32 id = 1;
+  uint32 submitted_by = 2;
+  string submitted_by_name = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message Version {
+  uint32 id = 1;
+  uint32 article_id = 2;
+  int32 version_number = 3;
+  string content = 4;
+  string commit_message = 5;
+  uint32 author_id = 6;
+  string status = 7;
+  string created_at = 8;
+}
+
+message Submission {
+  uint32 id = 1;
+  uint32 article_id = 2;
+  string article_title = 3;
+  uint32 proposed_version_id = 4;
+  uint32 base_version_id = 5;
+  uint32 submitted_by = 6;
+  string submitted_by_name = 7;
+  uint32 reviewed_by = 8;
+  string status = 9;
+  string commit_message = 10;
+  bool has_conflict = 11;
+  int32 ai_score = 12;
+  string created_at = 13;
+  string reviewed_at = 14;
+}
+
+message ConflictData {
+  string base_content = 1;
+  string their_content = 2;
+  string our_content = 3;
+  bool has_conflict = 4;
+  int32 base_version_number = 5;
+  int32 current_version_number = 6;
+  string submitter_name = 7;
+}
+
+// ============================================================================
+// Review Service Requests/Responses
+// ============================================================================
+
+message GetReviewsRequest {
+  string status = 1;  // pending, conflict_detected, all
+  uint32 article_id = 2;  // 0 表示不过滤
+}
+
+message GetReviewsResponse {
+  repeated Submission submissions = 1;
+}
+
+message GetReviewDetailRequest {
+  uint32 submission_id = 1;
+  uint32 user_id = 2;
+  string user_role = 3;
+}
+
+message ReviewDetail {
+  Submission submission = 1;
+  Version proposed_version = 2;
+  Version base_version = 3;
+  Article article = 4;
+}
+
+message GetReviewDetailResponse {
+  ReviewDetail detail = 1;
+}
+
+message ReviewActionRequest {
+  uint32 submission_id = 1;
+  string action = 2;  // approve, reject
+  string notes = 3;
+  string merged_content = 4;  // 仅当手动解决冲突时需要
+  uint32 reviewer_id = 5;
+  string user_role = 6;
+}
+
+message ReviewActionResponse {
+  string message = 1;
+  Version published_version = 2;
+  ConflictData conflict_data = 3;
+}
+
+// ============================================================================
+// Service
+// ============================================================================
+
+service ReviewService {
+  rpc GetReviews(GetReviewsRequest) returns (GetReviewsResponse);
+  rpc GetReviewDetail(GetReviewDetailRequest) returns (GetReviewDetailResponse);
+  rpc ReviewAction(ReviewActionRequest) returns (ReviewActionResponse);
+}
