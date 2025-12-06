@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package module_service;
+
+// ============================================================================
+// Common Messages
+// ============================================================================
+
+message UserInfo {
+  uint32 id = 1;
+  string username = 2;
+}
+
+// ============================================================================
+// Module Messages
+// ============================================================================
+
+message ModuleTreeNode {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+  uint32 owner_id = 4;
+  bool is_moderator = 5;
+  repeated ModuleTreeNode children = 6;
+}
+
+message Module {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+  uint32 parent_id = 4;
+  uint32 owner_id = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message BreadcrumbNode {
+  uint32 id = 1;
+  string name = 2;
+}
+
+message ModeratorInfo {
+  uint32 user_id = 1;
+  string username = 2;
+  string role = 3;
+  string created_at = 4;
+}
+
+message LockInfo {
+  bool success = 1;
+  UserInfo locked_by = 2;
+  string locked_at = 3;
+}
+
+// ============================================================================
+// Module Service Requests/Responses
+// ============================================================================
+
+message GetModuleTreeRequest {
+  uint32 user_id = 1;  // 0 表示未登录
+}
+
+message GetModuleTreeResponse {
+  repeated ModuleTreeNode tree = 1;
+}
+
+message GetModuleRequest {
+  uint32 id = 1;
+}
+
+message GetModuleResponse {
+  Module module = 1;
+}
+
+message GetBreadcrumbsRequest {
+  uint32 module_id = 1;
+}
+
+message GetBreadcrumbsResponse {
+  repeated BreadcrumbNode breadcrumbs = 1;
+}
+
+message CreateModuleRequest {
+  string name = 1;
+  string description = 2;
+  uint32 parent_id = 3;  // 0 表示顶级模块
+  uint32 user_id = 4;
+  string user_role = 5;
+}
+
+message CreateModuleResponse {
+  Module module = 1;
+}
+
+message UpdateModuleRequest {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+  uint32 parent_id = 4;  // 0 表示顶级模块
+  uint32 user_id = 5;
+  string user_role = 6;
+}
+
+message UpdateModuleResponse {}
+
+message DeleteModuleRequest {
+  uint32 id = 1;
+  uint32 user_id = 2;
+  string user_role = 3;
+}
+
+message DeleteModuleResponse {
+  int32 deleted_modules = 1;
+}
+
+message GetModeratorsRequest {
+  uint32 module_id = 1;
+  uint32 user_id = 2;
+  string user_role = 3;
+}
+
+message GetModeratorsResponse {
+  repeated ModeratorInfo moderators = 1;
+}
+
+message AddModeratorRequest {
+  uint32 module_id = 1;
+  uint32 target_user_id = 2;
+  string role = 3;  // admin, moderator
+  uint32 user_id = 4;
+  string user_role = 5;
+}
+
+message AddModeratorResponse {}
+
+message RemoveModeratorRequest {
+  uint32 module_id = 1;
+  uint32 target_user_id = 2;
+  uint32 user_id = 3;
+  string user_role = 4;
+}
+
+message RemoveModeratorResponse {}
+
+message HandleLockRequest {
+  uint32 module_id = 1;
+  string action = 2;  // acquire, release
+  uint32 user_id = 3;
+}
+
+message HandleLockResponse {
+  LockInfo lock_info = 1;
+}
+
+// ============================================================================
+// Service
+// ============================================================================
+
+service ModuleService {
+  // 浏览功能
+  rpc GetModuleTree(GetModuleTreeRequest) returns (GetModuleTreeResponse);
+  rpc GetModule(GetModuleRequest) returns (GetModuleResponse);
+  rpc GetBreadcrumbs(GetBreadcrumbsRequest) returns (GetBreadcrumbsResponse);
+  
+  // 管理功能
+  rpc CreateModule(CreateModuleRequest) returns (CreateModuleResponse);
+  rpc UpdateModule(UpdateModuleRequest) returns (UpdateModuleResponse);
+  rpc DeleteModule(DeleteModuleRequest) returns (DeleteModuleResponse);
+  
+  // 协作者管理
+  rpc GetModerators(GetModeratorsRequest) returns (GetModeratorsResponse);
+  rpc AddModerator(AddModeratorRequest) returns (AddModeratorResponse);
+  rpc RemoveModerator(RemoveModeratorRequest) returns (RemoveModeratorResponse);
+  
+  // 编辑锁
+  rpc HandleLock(HandleLockRequest) returns (HandleLockResponse);
+}
