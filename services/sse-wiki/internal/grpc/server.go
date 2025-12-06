@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net"
 
-	pb "terminal-terrace/sse-wiki/protobuf/proto/ssewiki"
+	articlepb "terminal-terrace/sse-wiki/protobuf/proto/article_service"
+	discussionpb "terminal-terrace/sse-wiki/protobuf/proto/discussion_service"
+	modulepb "terminal-terrace/sse-wiki/protobuf/proto/module_service"
+	reviewpb "terminal-terrace/sse-wiki/protobuf/proto/review_service"
 
 	"google.golang.org/grpc"
 )
@@ -16,7 +19,7 @@ type Server struct {
 }
 
 // NewServer creates a new gRPC server with all wiki services registered
-func NewServer(port int, moduleService pb.ModuleServiceServer, articleService pb.ArticleServiceServer, reviewService pb.ReviewServiceServer, discussionService pb.DiscussionServiceServer) (*Server, error) {
+func NewServer(port int, moduleService modulepb.ModuleServiceServer, articleService articlepb.ArticleServiceServer, reviewService reviewpb.ReviewServiceServer, discussionService discussionpb.DiscussionServiceServer) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on port %d: %w", port, err)
@@ -25,10 +28,11 @@ func NewServer(port int, moduleService pb.ModuleServiceServer, articleService pb
 	grpcServer := grpc.NewServer()
 
 	// Register all services
-	pb.RegisterModuleServiceServer(grpcServer, moduleService)
-	pb.RegisterArticleServiceServer(grpcServer, articleService)
-	pb.RegisterReviewServiceServer(grpcServer, reviewService)
-	pb.RegisterDiscussionServiceServer(grpcServer, discussionService)
+	modulepb.RegisterModuleServiceServer(grpcServer, moduleService)
+	articlepb.RegisterArticleServiceServer(grpcServer, articleService)
+	reviewpb.RegisterReviewServiceServer(grpcServer, reviewService)
+	discussionpb.RegisterDiscussionServiceServer(grpcServer, discussionService)
+	
 
 	return &Server{
 		grpcServer: grpcServer,

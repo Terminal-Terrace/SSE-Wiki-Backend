@@ -1,0 +1,247 @@
+syntax = "proto3";
+
+package article_service;
+
+// ============================================================================
+// Article Messages
+// ============================================================================
+
+message ArticleListItem {
+  uint32 id = 1;
+  string title = 2;
+  uint32 module_id = 3;
+  uint32 current_version_id = 4;
+  uint32 view_count = 5;
+  repeated string tags = 6;
+  uint32 created_by = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message Article {
+  uint32 id = 1;
+  string title = 2;
+  uint32 module_id = 3;
+  string content = 4;
+  string commit_message = 5;
+  int32 version_number = 6;
+  uint32 current_version_id = 7;
+  string current_user_role = 8;
+  bool is_review_required = 9;
+  uint32 view_count = 10;
+  repeated string tags = 11;
+  repeated PendingSubmission pending_submissions = 12;
+  uint32 created_by = 13;
+  string created_at = 14;
+  string updated_at = 15;
+  repeated HistoryEntry history = 16;
+}
+
+// 文章历史条目（版本或提交）
+message HistoryEntry {
+  string entry_type = 1;           // "version" 或 "submission"
+  uint32 entry_id = 2;             // 条目ID
+  uint32 version_id = 3;           // 版本ID
+  uint32 submission_id = 4;        // 提交ID（仅submission类型有值）
+  string status = 5;               // 版本状态（published/rejected）
+  string submission_status = 6;    // 提交状态（pending/merged/rejected/conflict_detected）
+  uint32 base_version_id = 7;      // 基础版本ID
+  uint32 merged_against_version_id = 8;  // 合并目标版本ID
+  bool has_conflict = 9;           // 是否有冲突
+  string merge_result = 10;        // 合并结果
+  string commit_message = 11;      // 提交说明
+  uint32 author_id = 12;           // 作者ID
+  uint32 reviewed_by = 13;         // 审核人ID
+  string review_notes = 14;        // 审核备注
+  string created_at = 15;          // 创建时间
+  string reviewed_at = 16;         // 审核时间
+}
+
+message PendingSubmission {
+  uint32 id = 1;
+  uint32 submitted_by = 2;
+  string submitted_by_name = 3;
+  string status = 4;
+  string created_at = 5;
+}
+
+message Version {
+  uint32 id = 1;
+  uint32 article_id = 2;
+  int32 version_number = 3;
+  string content = 4;
+  string commit_message = 5;
+  uint32 author_id = 6;
+  string status = 7;
+  string created_at = 8;
+}
+
+// User Article Favourites
+message GetArticleFavouritesByUserIdRequest {
+  string user_id = 1;
+}
+
+message GetArticleFavouritesByUserIdResponse {
+  repeated uint32 id = 1;
+}
+
+message VersionDiff {
+  string base_content = 1;
+  string current_content = 2;
+  int32 base_version_number = 3;
+  int32 current_version_number = 4;
+}
+
+message Submission {
+  uint32 id = 1;
+  uint32 article_id = 2;
+  string article_title = 3;
+  uint32 proposed_version_id = 4;
+  uint32 base_version_id = 5;
+  uint32 submitted_by = 6;
+  string submitted_by_name = 7;
+  uint32 reviewed_by = 8;
+  string status = 9;
+  string commit_message = 10;
+  bool has_conflict = 11;
+  int32 ai_score = 12;
+  string created_at = 13;
+  string reviewed_at = 14;
+}
+
+message ConflictData {
+  string base_content = 1;
+  string their_content = 2;
+  string our_content = 3;
+  bool has_conflict = 4;
+  int32 base_version_number = 5;
+  int32 current_version_number = 6;
+  string submitter_name = 7;
+}
+
+// ============================================================================
+// Article Service Requests/Responses
+// ============================================================================
+
+message GetArticlesByModuleRequest {
+  uint32 module_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message GetArticlesByModuleResponse {
+  int64 total = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  repeated ArticleListItem articles = 4;
+}
+
+message GetArticleRequest {
+  uint32 id = 1;
+  uint32 user_id = 2;
+  string user_role = 3;
+}
+
+message GetArticleResponse {
+  Article article = 1;
+}
+
+message GetVersionsRequest {
+  uint32 article_id = 1;
+}
+
+message GetVersionsResponse {
+  repeated Version versions = 1;
+}
+
+message GetVersionRequest {
+  uint32 id = 1;
+}
+
+message GetVersionResponse {
+  Version version = 1;
+}
+
+message GetVersionDiffRequest {
+  uint32 version_id = 1;
+}
+
+message GetVersionDiffResponse {
+  Version base_version = 1;    // 基础版本（可能为空，如 v1）
+  Version current_version = 2; // 当前版本
+}
+
+message CreateArticleRequest {
+  string title = 1;
+  uint32 module_id = 2;
+  string content = 3;
+  string commit_message = 4;
+  bool is_review_required = 5;
+  repeated string tags = 6;
+  uint32 user_id = 7;
+}
+
+message CreateArticleResponse {
+  Article article = 1;
+}
+
+message CreateSubmissionRequest {
+  uint32 article_id = 1;
+  string content = 2;
+  string commit_message = 3;
+  uint32 base_version_id = 4;
+  uint32 user_id = 5;
+  string user_role = 6;
+}
+
+message CreateSubmissionResponse {
+  bool published = 1;
+  bool need_review = 2;
+  string message = 3;
+  Submission submission = 4;
+  Version published_version = 5;
+  ConflictData conflict_data = 6;
+}
+
+message UpdateBasicInfoRequest {
+  uint32 article_id = 1;
+  string title = 2;
+  repeated string tags = 3;
+  bool is_review_required = 4;
+  bool has_title = 5;
+  bool has_tags = 6;
+  bool has_is_review_required = 7;
+  uint32 user_id = 8;
+  string user_role = 9;
+}
+
+message UpdateBasicInfoResponse {}
+
+message AddCollaboratorRequest {
+  uint32 article_id = 1;
+  uint32 target_user_id = 2;
+  string role = 3;  // owner, moderator
+  uint32 user_id = 4;
+  string user_role = 5;
+}
+
+message AddCollaboratorResponse {}
+
+// ============================================================================
+// Service
+// ============================================================================
+
+service ArticleService {
+  // 浏览功能
+  rpc GetArticlesByModule(GetArticlesByModuleRequest) returns (GetArticlesByModuleResponse);
+  rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+  rpc GetVersions(GetVersionsRequest) returns (GetVersionsResponse);
+  rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
+  rpc GetVersionDiff(GetVersionDiffRequest) returns (GetVersionDiffResponse);
+  
+  // 编辑功能
+  rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
+  rpc CreateSubmission(CreateSubmissionRequest) returns (CreateSubmissionResponse);
+  rpc UpdateBasicInfo(UpdateBasicInfoRequest) returns (UpdateBasicInfoResponse);
+  rpc AddCollaborator(AddCollaboratorRequest) returns (AddCollaboratorResponse);
+}
