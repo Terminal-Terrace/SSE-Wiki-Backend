@@ -76,15 +76,6 @@ message Version {
   string created_at = 8;
 }
 
-// User Article Favourites
-message GetArticleFavouritesByUserIdRequest {
-  string user_id = 1;
-}
-
-message GetArticleFavouritesByUserIdResponse {
-  repeated uint32 id = 1;
-}
-
 message VersionDiff {
   string base_content = 1;
   string current_content = 2;
@@ -227,6 +218,15 @@ message AddCollaboratorRequest {
 
 message AddCollaboratorResponse {}
 
+// User Article Favourites
+message GetArticleFavouritesRequest {
+  string user_id = 1;
+}
+
+message GetArticleFavouritesResponse {
+  repeated uint32 id = 1;
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -238,6 +238,7 @@ service ArticleService {
   rpc GetVersions(GetVersionsRequest) returns (GetVersionsResponse);
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
   rpc GetVersionDiff(GetVersionDiffRequest) returns (GetVersionDiffResponse);
+  rpc GetUserArticleFavourites(GetArticleFavouritesRequest) returns (GetArticleFavouritesResponse);
   
   // 编辑功能
   rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
