@@ -270,6 +270,10 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 	return submission, nil, nil
 }
 
+func (s *ArticleService) GetUserFavouriteArticle(userId uint) ([]uint32, error) {
+	return s.articleRepo.GetFavoriteByUserId(userId)
+}
+
 // ReviewSubmission 审核提交
 func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, userRole string, req dto.ReviewActionRequest) (interface{}, error) {
 	// 1. 获取submission

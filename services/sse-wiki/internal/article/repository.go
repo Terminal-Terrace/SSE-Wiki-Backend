@@ -25,6 +25,14 @@ func (r *ArticleRepository) GetByID(id uint) (*article.Article, error) {
 	return &art, err
 }
 
+func (r *ArticleRepository) GetFavoriteByUserId(userID uint) ([]uint32, error) {
+	var articleIDs []uint32
+	err := r.db.Model(&article.Favorite{}).
+		Where("user_id = ?", userID).
+		Pluck("article_id", &articleIDs).Error
+	return articleIDs, err
+}
+
 func (r *ArticleRepository) Create(art *article.Article) error {
 	return r.db.Create(art).Error
 }
