@@ -25,6 +25,7 @@ const (
 	ArticleService_GetVersion_FullMethodName               = "/article_service.ArticleService/GetVersion"
 	ArticleService_GetVersionDiff_FullMethodName           = "/article_service.ArticleService/GetVersionDiff"
 	ArticleService_GetUserArticleFavourites_FullMethodName = "/article_service.ArticleService/GetUserArticleFavourites"
+	ArticleService_UpdateUserFavourites_FullMethodName     = "/article_service.ArticleService/UpdateUserFavourites"
 	ArticleService_CreateArticle_FullMethodName            = "/article_service.ArticleService/CreateArticle"
 	ArticleService_CreateSubmission_FullMethodName         = "/article_service.ArticleService/CreateSubmission"
 	ArticleService_UpdateBasicInfo_FullMethodName          = "/article_service.ArticleService/UpdateBasicInfo"
@@ -42,6 +43,7 @@ type ArticleServiceClient interface {
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	GetVersionDiff(ctx context.Context, in *GetVersionDiffRequest, opts ...grpc.CallOption) (*GetVersionDiffResponse, error)
 	GetUserArticleFavourites(ctx context.Context, in *GetArticleFavouritesRequest, opts ...grpc.CallOption) (*GetArticleFavouritesResponse, error)
+	UpdateUserFavourites(ctx context.Context, in *UpdateUserFavouritesRequest, opts ...grpc.CallOption) (*UpdateUserFavouritesResponse, error)
 	// 编辑功能
 	CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error)
 	CreateSubmission(ctx context.Context, in *CreateSubmissionRequest, opts ...grpc.CallOption) (*CreateSubmissionResponse, error)
@@ -117,6 +119,16 @@ func (c *articleServiceClient) GetUserArticleFavourites(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *articleServiceClient) UpdateUserFavourites(ctx context.Context, in *UpdateUserFavouritesRequest, opts ...grpc.CallOption) (*UpdateUserFavouritesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserFavouritesResponse)
+	err := c.cc.Invoke(ctx, ArticleService_UpdateUserFavourites_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *articleServiceClient) CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateArticleResponse)
@@ -168,6 +180,7 @@ type ArticleServiceServer interface {
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	GetVersionDiff(context.Context, *GetVersionDiffRequest) (*GetVersionDiffResponse, error)
 	GetUserArticleFavourites(context.Context, *GetArticleFavouritesRequest) (*GetArticleFavouritesResponse, error)
+	UpdateUserFavourites(context.Context, *UpdateUserFavouritesRequest) (*UpdateUserFavouritesResponse, error)
 	// 编辑功能
 	CreateArticle(context.Context, *CreateArticleRequest) (*CreateArticleResponse, error)
 	CreateSubmission(context.Context, *CreateSubmissionRequest) (*CreateSubmissionResponse, error)
@@ -200,6 +213,9 @@ func (UnimplementedArticleServiceServer) GetVersionDiff(context.Context, *GetVer
 }
 func (UnimplementedArticleServiceServer) GetUserArticleFavourites(context.Context, *GetArticleFavouritesRequest) (*GetArticleFavouritesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserArticleFavourites not implemented")
+}
+func (UnimplementedArticleServiceServer) UpdateUserFavourites(context.Context, *UpdateUserFavouritesRequest) (*UpdateUserFavouritesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserFavourites not implemented")
 }
 func (UnimplementedArticleServiceServer) CreateArticle(context.Context, *CreateArticleRequest) (*CreateArticleResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateArticle not implemented")
@@ -342,6 +358,24 @@ func _ArticleService_GetUserArticleFavourites_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArticleService_UpdateUserFavourites_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserFavouritesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).UpdateUserFavourites(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_UpdateUserFavourites_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).UpdateUserFavourites(ctx, req.(*UpdateUserFavouritesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ArticleService_CreateArticle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateArticleRequest)
 	if err := dec(in); err != nil {
@@ -444,6 +478,10 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUserArticleFavourites",
 			Handler:    _ArticleService_GetUserArticleFavourites_Handler,
+		},
+		{
+			MethodName: "UpdateUserFavourites",
+			Handler:    _ArticleService_UpdateUserFavourites_Handler,
 		},
 		{
 			MethodName: "CreateArticle",
