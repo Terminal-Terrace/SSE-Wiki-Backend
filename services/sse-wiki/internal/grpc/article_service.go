@@ -89,6 +89,16 @@ func (s *ArticleServiceImpl) GetUserArticleFavourites(ctx context.Context, req *
 	}, nil
 }
 
+func (s *ArticleServiceImpl) UpdateUserFavourites(ctx context.Context, req *pb.UpdateUserFavouritesRequest) (*pb.UpdateUserFavouritesResponse, error) {
+	res, err := s.getArticleService().UpdateUserFavouriteArticle(req.UserId, req.ArticleId, req.IsAdd)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UpdateUserFavouritesResponse{
+		Status: res,
+	}, nil
+}
+
 // GetArticle returns article details
 func (s *ArticleServiceImpl) GetArticle(ctx context.Context, req *pb.GetArticleRequest) (*pb.GetArticleResponse, error) {
 	result, err := s.getArticleService().GetArticle(uint(req.Id), uint(req.UserId), req.UserRole)

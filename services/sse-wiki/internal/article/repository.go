@@ -33,6 +33,32 @@ func (r *ArticleRepository) GetFavoriteByUserId(userID uint) ([]uint32, error) {
 	return articleIDs, err
 }
 
+func (r *ArticleRepository) UpdateUserFavourite(userId uint, articleId uint, is_added bool) (string, error) {
+	fav := article.Favorite{UserID: userId, ArticleID: articleId}
+	if is_added {
+		// Add to favorites
+		// Check if it already exists, if not, create it.
+		result := r.db.FirstOrCreate(&fav, fav)
+		if result.Error != nil {
+			return "", result.Error
+		}
+		if result.RowsAffected > 0 {
+			return "add successfully", nil
+		}
+		return "already exists", nil
+	} else {
+		// Remove from favorites
+		result := r.db.Where("user_id = ? AND article_id = ?", userId, articleId).Delete(&article.Favorite{})
+		if result.Error != nil {
+			return "", result.Error
+		}
+		if result.RowsAffected > 0 {
+			return "removed successfully", nil
+		}
+		return "not found", nil
+	}
+}
+
 func (r *ArticleRepository) Create(art *article.Article) error {
 	return r.db.Create(art).Error
 }

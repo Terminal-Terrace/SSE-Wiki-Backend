@@ -274,6 +274,10 @@ func (s *ArticleService) GetUserFavouriteArticle(userId uint) ([]uint32, error) 
 	return s.articleRepo.GetFavoriteByUserId(userId)
 }
 
+func (s *ArticleService) UpdateUserFavouriteArticle(userId uint32, articleId uint32, is_added bool) (string, error) {
+	return s.articleRepo.UpdateUserFavourite(uint(userId), uint(articleId), is_added)
+}
+
 // ReviewSubmission 审核提交
 func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, userRole string, req dto.ReviewActionRequest) (interface{}, error) {
 	// 1. 获取submission
