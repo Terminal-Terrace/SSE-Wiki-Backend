@@ -1,5 +1,4 @@
 // config/config.go - 配置管理文件
-// AI一键生成的, 之后大概率要改
 package config
 
 import (
@@ -7,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -24,7 +22,6 @@ var (
 
 // AppConfig 应用配置结构
 type AppConfig struct {
-	Server   ServerConfig   `koanf:"server"`
 	GRPC     GRPCConfig     `koanf:"grpc"`
 	Database DatabaseConfig `koanf:"database"`
 	Redis    RedisConfig    `koanf:"redis"`
@@ -34,14 +31,6 @@ type AppConfig struct {
 
 type GRPCConfig struct {
 	Port int `koanf:"port"`
-}
-
-type ServerConfig struct {
-	Host         string        `koanf:"host"`
-	Port         int           `koanf:"port"`
-	Mode         string        `koanf:"mode"` // debug, release
-	ReadTimeout  time.Duration `koanf:"read_timeout"`
-	WriteTimeout time.Duration `koanf:"write_timeout"`
 }
 
 type DatabaseConfig struct {
@@ -108,10 +97,6 @@ func Load(configPath string) error {
 			err = fmt.Errorf("解析配置失败: %w", err)
 			return
 		}
-
-		// 转换时间单位
-		Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-		Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
 	})
 
 	return err
@@ -162,9 +147,6 @@ func Reload(configPath string) error {
 	if err := k.Unmarshal("", Conf); err != nil {
 		return err
 	}
-
-	Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-	Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
 
 	return nil
 }

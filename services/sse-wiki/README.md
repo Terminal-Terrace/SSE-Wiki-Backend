@@ -1,15 +1,51 @@
-# SSE-Wiki-Backend
+# SSE-Wiki Service
+
+SSE-Wiki 主服务，提供文章、模块、讨论等核心功能的 gRPC 接口。
+
+## 架构
+
+本服务采用纯 gRPC 架构，通过 Node.js BFF 层对外提供 HTTP API。
+
+## 启动
+
+```bash
+cd services/sse-wiki
+go run cmd/server/main.go
+```
+
+服务将在 gRPC 端口 `50052` 上启动。
 
 ## 文件结构
 
-- cmd
-  - server 存放服务器相关的命令
-- config 配置文件
-- internal 内部使用, 外部无法导入的代码文件
-  - database 数据库相关的初始化操作
-  - dto 统一的返回格式, 约定接口的request和response
-  - handler 与http层交互, 进行简单的数据校验, 如判空等; 不处理业务, 将数据交给service层处理
-  - service 业务实际处理的地方
-  - middleware 中间件, 还没写
-  - route 路由
-  - model 数据库表的结构
+- `cmd/server` - 服务入口
+- `config` - 配置文件和配置加载
+- `internal/` - 内部代码
+  - `database` - 数据库初始化
+  - `grpc` - gRPC 服务实现
+  - `model` - 数据库模型
+  - `article` - 文章业务逻辑
+  - `module` - 模块业务逻辑
+  - `discussion` - 讨论业务逻辑
+- `protobuf/` - Protocol Buffers 生成代码
+
+## gRPC 服务
+
+- `ArticleService` - 文章管理
+- `ModuleService` - 模块管理
+- `ReviewService` - 审核管理
+- `DiscussionService` - 讨论管理
+
+## 配置
+
+配置文件 `config.yaml`：
+
+```yaml
+grpc:
+  port: 50052
+
+database:
+  driver: "postgres"
+  host: "localhost"
+  port: 5432
+  # ...
+```
