@@ -326,6 +326,26 @@ func (s *ArticleServiceImpl) UpdateBasicInfo(ctx context.Context, req *pb.Update
 	return &pb.UpdateBasicInfoResponse{}, nil
 }
 
+// GetCollaborators returns the list of collaborators for an article
+func (s *ArticleServiceImpl) GetCollaborators(ctx context.Context, req *pb.GetCollaboratorsRequest) (*pb.GetCollaboratorsResponse, error) {
+	collaborators, err := s.getArticleService().GetCollaborators(uint(req.ArticleId), uint(req.UserId), req.UserRole)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	pbCollaborators := make([]*pb.ArticleCollaboratorInfo, len(collaborators))
+	for i, c := range collaborators {
+		pbCollaborators[i] = &pb.ArticleCollaboratorInfo{
+			UserId:    uint32(c.UserID),
+			Username:  c.Username,
+			Role:      c.Role,
+			CreatedAt: c.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	return &pb.GetCollaboratorsResponse{Collaborators: pbCollaborators}, nil
+}
+
 // AddCollaborator adds a collaborator to an article
 func (s *ArticleServiceImpl) AddCollaborator(ctx context.Context, req *pb.AddCollaboratorRequest) (*pb.AddCollaboratorResponse, error) {
 	addReq := dto.AddCollaboratorRequest{
@@ -339,6 +359,16 @@ func (s *ArticleServiceImpl) AddCollaborator(ctx context.Context, req *pb.AddCol
 	}
 
 	return &pb.AddCollaboratorResponse{}, nil
+}
+
+// RemoveCollaborator removes a collaborator from an article
+func (s *ArticleServiceImpl) RemoveCollaborator(ctx context.Context, req *pb.RemoveCollaboratorRequest) (*pb.RemoveCollaboratorResponse, error) {
+	err := s.getArticleService().RemoveCollaborator(uint(req.ArticleId), uint(req.UserId), req.UserRole, uint(req.TargetUserId))
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.RemoveCollaboratorResponse{}, nil
 }
 
 // Helper to get the underlying article service

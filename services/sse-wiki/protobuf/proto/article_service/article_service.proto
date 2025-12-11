@@ -219,9 +219,36 @@ message AddCollaboratorRequest {
 
 message AddCollaboratorResponse {}
 
+// 文章协作者信息
+message ArticleCollaboratorInfo {
+  uint32 user_id = 1;
+  string username = 2;
+  string role = 3;
+  string created_at = 4;
+}
+
+message GetCollaboratorsRequest {
+  uint32 article_id = 1;
+  uint32 user_id = 2;
+  string user_role = 3;
+}
+
+message GetCollaboratorsResponse {
+  repeated ArticleCollaboratorInfo collaborators = 1;
+}
+
+message RemoveCollaboratorRequest {
+  uint32 article_id = 1;
+  uint32 target_user_id = 2;
+  uint32 user_id = 3;
+  string user_role = 4;
+}
+
+message RemoveCollaboratorResponse {}
+
 // User Article Favourites
 message GetArticleFavouritesRequest {
-  uint32 user_id = 1;
+  string user_id = 1;
 }
 
 message GetArticleFavouritesResponse {
@@ -257,5 +284,9 @@ service ArticleService {
   rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
   rpc CreateSubmission(CreateSubmissionRequest) returns (CreateSubmissionResponse);
   rpc UpdateBasicInfo(UpdateBasicInfoRequest) returns (UpdateBasicInfoResponse);
+  
+  // 协作者管理
+  rpc GetCollaborators(GetCollaboratorsRequest) returns (GetCollaboratorsResponse);
   rpc AddCollaborator(AddCollaboratorRequest) returns (AddCollaboratorResponse);
+  rpc RemoveCollaborator(RemoveCollaboratorRequest) returns (RemoveCollaboratorResponse);
 }

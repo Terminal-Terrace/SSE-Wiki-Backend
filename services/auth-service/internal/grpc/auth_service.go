@@ -6,10 +6,11 @@ import (
 	"terminal-terrace/auth-service/internal/code"
 	"terminal-terrace/auth-service/internal/database"
 	"terminal-terrace/auth-service/internal/login"
-	pb "terminal-terrace/auth-service/protobuf/proto/auth_service"
 	"terminal-terrace/auth-service/internal/pkg"
 	"terminal-terrace/auth-service/internal/refresh"
 	"terminal-terrace/auth-service/internal/register"
+	"terminal-terrace/auth-service/internal/user"
+	pb "terminal-terrace/auth-service/protobuf/proto/auth_service"
 	"terminal-terrace/email"
 
 	"google.golang.org/grpc/codes"
@@ -23,6 +24,7 @@ type AuthServiceImpl struct {
 	codeService     *code.CodeService
 	refreshService  *refresh.RefreshTokenService
 	registerService *register.RegisterService
+	userService     *user.UserService
 }
 
 // NewAuthServiceImpl creates a new AuthService implementation
@@ -32,6 +34,7 @@ func NewAuthServiceImpl(mailer *email.Client) *AuthServiceImpl {
 		codeService:     code.NewCodeService(mailer),
 		refreshService:  refresh.NewRefreshTokenService(refreshTokenRepo),
 		registerService: register.NewRegisterService(refreshTokenRepo),
+		userService:     user.NewUserService(),
 	}
 }
 
@@ -254,5 +257,65 @@ func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, req *pb.UpdateProfi
 			Role:     user.Role,
 			Avatar:   avatar,
 		},
+	}, nil
+}
+
+// SearchUsers searches users by keyword
+// Returns PublicUserInfo (without email)
+func (s *AuthServiceImpl) SearchUsers(ctx context.Context, req *pb.SearchUsersRequest) (*pb.SearchUsersResponse, error) {
+	result, bizErr := s.userService.SearchUsers(user.SearchUsersRequest{
+		Keyword:       req.Keyword,
+		ExcludeUserID: uint(req.ExcludeUserId),
+		Page:          int(req.Page),
+		PageSize:      int(req.PageSize),
+	})
+	if bizErr != nil {
+		return nil, status.Error(codes.Internal, bizErr.Msg)
+	}
+
+	// Convert to proto PublicUserInfo
+	users := make([]*pb.PublicUserInfo, len(result.Users))
+	for i, u := range result.Users {
+		users[i] = &pb.PublicUserInfo{
+			Id:       uint32(u.ID),
+			Username: u.Username,
+			Avatar:   u.Avatar,
+		}
+	}
+
+	return &pb.SearchUsersResponse{
+		Users: users,
+		Total: result.Total,
+	}, nil
+}
+
+// GetUsersByIds gets users by IDs in batch
+// Returns PublicUserInfo (without email)
+func (s *AuthServiceImpl) GetUsersByIds(ctx context.Context, req *pb.GetUsersByIdsRequest) (*pb.GetUsersByIdsResponse, error) {
+	// Convert uint32 to uint
+	userIDs := make([]uint, len(req.UserIds))
+	for i, id := range req.UserIds {
+		userIDs[i] = uint(id)
+	}
+
+	result, bizErr := s.userService.GetUsersByIDs(user.GetUsersByIDsRequest{
+		UserIDs: userIDs,
+	})
+	if bizErr != nil {
+		return nil, status.Error(codes.Internal, bizErr.Msg)
+	}
+
+	// Convert to proto PublicUserInfo
+	users := make([]*pb.PublicUserInfo, len(result.Users))
+	for i, u := range result.Users {
+		users[i] = &pb.PublicUserInfo{
+			Id:       uint32(u.ID),
+			Username: u.Username,
+			Avatar:   u.Avatar,
+		}
+	}
+
+	return &pb.GetUsersByIdsResponse{
+		Users: users,
 	}, nil
 }
