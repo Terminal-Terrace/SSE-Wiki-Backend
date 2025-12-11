@@ -1,5 +1,4 @@
 // config/config.go - 配置管理文件
-// AI一键生成的, 之后大概率要改
 package config
 
 import (
@@ -7,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -53,10 +51,6 @@ func Load(configPath string) error {
 			err = fmt.Errorf("解析配置失败: %w", err)
 			return
 		}
-
-		// 转换时间单位
-		Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-		Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
 
 		fmt.Println(Conf.Github)
 	})
@@ -109,9 +103,6 @@ func Reload(configPath string) error {
 	if err := k.Unmarshal("", Conf); err != nil {
 		return err
 	}
-
-	Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-	Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
 
 	return nil
 }

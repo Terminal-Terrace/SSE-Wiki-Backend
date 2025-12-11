@@ -1,13 +1,6 @@
 # Auth Service 配置文件
 # 敏感信息建议通过环境变量设置
 
-server:
-    host: 'localhost'
-    port: 8081
-    mode: 'debug'
-    read_timeout: 30
-    write_timeout: 30
-
 grpc:
     port: 50051
 

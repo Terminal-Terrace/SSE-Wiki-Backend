@@ -2,12 +2,10 @@ package config
 
 import (
 	"terminal-terrace/email"
-	"time"
 )
 
 // AppConfig 应用配置结构
 type AppConfig struct {
-	Server   ServerConfig      `koanf:"server"`
 	GRPC     GRPCConfig        `koanf:"grpc"`
 	Database DatabaseConfig    `koanf:"database"`
 	Redis    RedisConfig       `koanf:"redis"`
@@ -19,14 +17,6 @@ type AppConfig struct {
 
 type GRPCConfig struct {
 	Port int `koanf:"port"`
-}
-
-type ServerConfig struct {
-	Host         string        `koanf:"host"`
-	Port         int           `koanf:"port"`
-	Mode         string        `koanf:"mode"` // debug, release
-	ReadTimeout  time.Duration `koanf:"read_timeout"`
-	WriteTimeout time.Duration `koanf:"write_timeout"`
 }
 
 type DatabaseConfig struct {
