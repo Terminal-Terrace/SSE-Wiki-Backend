@@ -16,6 +16,7 @@ message ArticleListItem {
   uint32 created_by = 7;
   string created_at = 8;
   string updated_at = 9;
+  string summary = 10;  // 文章摘要
 }
 
 message Article {
@@ -250,9 +251,9 @@ service ArticleService {
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
   rpc GetVersionDiff(GetVersionDiffRequest) returns (GetVersionDiffResponse);
   rpc GetUserArticleFavourites(GetArticleFavouritesRequest) returns (GetArticleFavouritesResponse);
-  rpc UpdateUserFavourites(UpdateUserFavouritesRequest) returns (UpdateUserFavouritesResponse);
 
   // 编辑功能
+  rpc UpdateUserFavourites(UpdateUserFavouritesRequest) returns (UpdateUserFavouritesResponse);
   rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
   rpc CreateSubmission(CreateSubmissionRequest) returns (CreateSubmissionResponse);
   rpc UpdateBasicInfo(UpdateBasicInfoRequest) returns (UpdateBasicInfoResponse);

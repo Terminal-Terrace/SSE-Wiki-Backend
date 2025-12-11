@@ -60,6 +60,7 @@ func (s *ArticleServiceImpl) GetArticlesByModule(ctx context.Context, req *pb.Ge
 				CreatedBy:        uint32(getUint(a, "created_by")),
 				CreatedAt:        getString(a, "created_at"),
 				UpdatedAt:        getString(a, "updated_at"),
+				Summary:          getString(a, "summary"),
 			}
 		}
 	}

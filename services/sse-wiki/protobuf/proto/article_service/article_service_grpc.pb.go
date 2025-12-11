@@ -43,8 +43,8 @@ type ArticleServiceClient interface {
 	GetVersion(ctx context.Context, in *GetVersionRequest, opts ...grpc.CallOption) (*GetVersionResponse, error)
 	GetVersionDiff(ctx context.Context, in *GetVersionDiffRequest, opts ...grpc.CallOption) (*GetVersionDiffResponse, error)
 	GetUserArticleFavourites(ctx context.Context, in *GetArticleFavouritesRequest, opts ...grpc.CallOption) (*GetArticleFavouritesResponse, error)
-	UpdateUserFavourites(ctx context.Context, in *UpdateUserFavouritesRequest, opts ...grpc.CallOption) (*UpdateUserFavouritesResponse, error)
 	// 编辑功能
+	UpdateUserFavourites(ctx context.Context, in *UpdateUserFavouritesRequest, opts ...grpc.CallOption) (*UpdateUserFavouritesResponse, error)
 	CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error)
 	CreateSubmission(ctx context.Context, in *CreateSubmissionRequest, opts ...grpc.CallOption) (*CreateSubmissionResponse, error)
 	UpdateBasicInfo(ctx context.Context, in *UpdateBasicInfoRequest, opts ...grpc.CallOption) (*UpdateBasicInfoResponse, error)
@@ -180,8 +180,8 @@ type ArticleServiceServer interface {
 	GetVersion(context.Context, *GetVersionRequest) (*GetVersionResponse, error)
 	GetVersionDiff(context.Context, *GetVersionDiffRequest) (*GetVersionDiffResponse, error)
 	GetUserArticleFavourites(context.Context, *GetArticleFavouritesRequest) (*GetArticleFavouritesResponse, error)
-	UpdateUserFavourites(context.Context, *UpdateUserFavouritesRequest) (*UpdateUserFavouritesResponse, error)
 	// 编辑功能
+	UpdateUserFavourites(context.Context, *UpdateUserFavouritesRequest) (*UpdateUserFavouritesResponse, error)
 	CreateArticle(context.Context, *CreateArticleRequest) (*CreateArticleResponse, error)
 	CreateSubmission(context.Context, *CreateSubmissionRequest) (*CreateSubmissionResponse, error)
 	UpdateBasicInfo(context.Context, *UpdateBasicInfoRequest) (*UpdateBasicInfoResponse, error)
