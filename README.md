@@ -1,17 +1,29 @@
-# go大仓
+# Go 后端服务
+
+## 架构说明
+
+本项目采用纯 gRPC 架构，所有服务通过 gRPC 对外提供接口，由 Node.js BFF 层统一处理 HTTP 请求并转发到 gRPC 服务。
+
+### 服务端口
+
+| 服务 | gRPC 端口 | 说明 |
+|------|-----------|------|
+| auth-service | 50051 | 认证服务 |
+| sse-wiki | 50052 | Wiki 主服务 |
+| template | 50053 | 服务模板（参考标准） |
 
 ## 项目结构
 
 ```
 SSE-Wiki-Backend/
 ├── services/              # 微服务目录
-│   ├── sse-wiki/          # SSE Wiki 主服务
-│   ├── auth-service/      # 认证服务
-│   └── template/          # 服务模板（参考标准）
+│   ├── auth-service/      # 认证服务 (gRPC: 50051)
+│   ├── sse-wiki/          # SSE Wiki 主服务 (gRPC: 50052)
+│   └── template/          # gRPC 服务模板（创建新服务时参考）
 ├── packages/              # 共享包目录
 │   ├── database/          # 统一数据库连接管理
 │   ├── response/          # 统一响应格式
-│   └── auth-sdk/          # 认证 SDK
+│   └── email/             # 邮件服务
 ├── .env.example           # 环境变量模板
 ├── go.work                # Go Workspace 配置
 ├── Makefile               # 构建脚本
