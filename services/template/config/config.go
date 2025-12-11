@@ -6,7 +6,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -23,19 +22,15 @@ var (
 
 // AppConfig 应用配置结构
 type AppConfig struct {
-	Server   ServerConfig   `koanf:"server"`
+	GRPC     GRPCConfig     `koanf:"grpc"`
 	Database DatabaseConfig `koanf:"database"`
 	Redis    RedisConfig    `koanf:"redis"`
 	Log      LogConfig      `koanf:"log"`
 	JWT      JWTConfig      `koanf:"jwt"`
 }
 
-type ServerConfig struct {
-	Host         string        `koanf:"host"`
-	Port         int           `koanf:"port"`
-	Mode         string        `koanf:"mode"` // debug, release
-	ReadTimeout  time.Duration `koanf:"read_timeout"`
-	WriteTimeout time.Duration `koanf:"write_timeout"`
+type GRPCConfig struct {
+	Port int `koanf:"port"`
 }
 
 type DatabaseConfig struct {
@@ -46,10 +41,10 @@ type DatabaseConfig struct {
 	Password     string `koanf:"password"`
 	Database     string `koanf:"database"`
 	SSLMode      bool   `koanf:"sslmode"`
-	LogLevel     string `koanf:"log_level"`    // 数据库日志级别
+	LogLevel     string `koanf:"log_level"`
 	MaxOpenConns int    `koanf:"max_open_conns"`
 	MaxIdleConns int    `koanf:"max_idle_conns"`
-	MaxLifetime  int    `koanf:"max_lifetime"` // 秒
+	MaxLifetime  int    `koanf:"max_lifetime"`
 }
 
 type RedisConfig struct {
@@ -61,15 +56,15 @@ type RedisConfig struct {
 }
 
 type LogConfig struct {
-	Level  string `koanf:"level"`  // debug, info, warn, error
-	Format string `koanf:"format"` // json, text
-	Output string `koanf:"output"` // stdout, file
-	Path   string `koanf:"path"`   // 日志文件路径
+	Level  string `koanf:"level"`
+	Format string `koanf:"format"`
+	Output string `koanf:"output"`
+	Path   string `koanf:"path"`
 }
 
 type JWTConfig struct {
 	Secret     string `koanf:"secret"`
-	ExpireTime int    `koanf:"expire_time"` // 小时
+	ExpireTime int    `koanf:"expire_time"`
 }
 
 // Load 加载配置文件
@@ -102,15 +97,10 @@ func Load(configPath string) error {
 			err = fmt.Errorf("解析配置失败: %w", err)
 			return
 		}
-
-		// 转换时间单位
-		Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-		Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
 	})
 
 	return err
 }
-
 
 // MustLoad 加载配置，失败则 panic
 func MustLoad(configPath string) {
@@ -154,12 +144,5 @@ func Reload(configPath string) error {
 	}
 
 	Conf = &AppConfig{}
-	if err := k.Unmarshal("", Conf); err != nil {
-		return err
-	}
-
-	Conf.Server.ReadTimeout = Conf.Server.ReadTimeout * time.Second
-	Conf.Server.WriteTimeout = Conf.Server.WriteTimeout * time.Second
-
-	return nil
+	return k.Unmarshal("", Conf)
 }
