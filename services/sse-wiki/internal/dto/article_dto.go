@@ -2,6 +2,7 @@ package dto
 
 import (
 	"encoding/json"
+	"time"
 )
 
 // StringSlice 自定义字符串切片类型，支持空字符串解析
@@ -47,6 +48,14 @@ type UpdateArticleBasicInfoRequest struct {
 type AddCollaboratorRequest struct {
 	UserID uint   `json:"user_id" binding:"required"`
 	Role   string `json:"role" binding:"required,oneof=owner moderator"`
+}
+
+// CollaboratorInfo 协作者信息
+type CollaboratorInfo struct {
+	UserID    uint      `json:"user_id"`
+	Username  string    `json:"username"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // SubmissionRequest 提交修改请求

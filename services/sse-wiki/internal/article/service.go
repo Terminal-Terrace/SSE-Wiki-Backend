@@ -920,6 +920,32 @@ func (s *ArticleService) UpdateBasicInfo(articleID uint, userID uint, userRole s
 	return nil
 }
 
+// GetCollaborators 获取文章协作者列表
+func (s *ArticleService) GetCollaborators(articleID uint, userID uint, userRole string) ([]dto.CollaboratorInfo, error) {
+	// 检查权限（全局admin或文章moderator及以上）
+	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "moderator")
+	if !hasPermission {
+		return nil, errors.New("permission denied")
+	}
+
+	collaborators, err := s.articleRepo.GetCollaborators(articleID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.CollaboratorInfo, len(collaborators))
+	for i, c := range collaborators {
+		result[i] = dto.CollaboratorInfo{
+			UserID:    c.UserID,
+			Username:  "", // Username 需要从 auth-service 获取，由 Node.js 层聚合
+			Role:      c.Role,
+			CreatedAt: c.CreatedAt,
+		}
+	}
+
+	return result, nil
+}
+
 // AddCollaborator 添加协作者
 func (s *ArticleService) AddCollaborator(articleID uint, userID uint, userRole string, req dto.AddCollaboratorRequest) error {
 	// 检查权限（全局admin或文章owner）
@@ -929,6 +955,17 @@ func (s *ArticleService) AddCollaborator(articleID uint, userID uint, userRole s
 	}
 
 	return s.articleRepo.AddCollaborator(articleID, req.UserID, req.Role)
+}
+
+// RemoveCollaborator 移除协作者
+func (s *ArticleService) RemoveCollaborator(articleID uint, userID uint, userRole string, targetUserID uint) error {
+	// 检查权限（全局admin或文章owner）
+	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "owner")
+	if !hasPermission {
+		return errors.New("permission denied")
+	}
+
+	return s.articleRepo.RemoveCollaborator(articleID, targetUserID)
 }
 
 // GetVersions 获取文章版本列表
