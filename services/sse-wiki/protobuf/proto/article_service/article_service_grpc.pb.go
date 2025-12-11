@@ -29,7 +29,9 @@ const (
 	ArticleService_CreateArticle_FullMethodName            = "/article_service.ArticleService/CreateArticle"
 	ArticleService_CreateSubmission_FullMethodName         = "/article_service.ArticleService/CreateSubmission"
 	ArticleService_UpdateBasicInfo_FullMethodName          = "/article_service.ArticleService/UpdateBasicInfo"
+	ArticleService_GetCollaborators_FullMethodName         = "/article_service.ArticleService/GetCollaborators"
 	ArticleService_AddCollaborator_FullMethodName          = "/article_service.ArticleService/AddCollaborator"
+	ArticleService_RemoveCollaborator_FullMethodName       = "/article_service.ArticleService/RemoveCollaborator"
 )
 
 // ArticleServiceClient is the client API for ArticleService service.
@@ -48,7 +50,10 @@ type ArticleServiceClient interface {
 	CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error)
 	CreateSubmission(ctx context.Context, in *CreateSubmissionRequest, opts ...grpc.CallOption) (*CreateSubmissionResponse, error)
 	UpdateBasicInfo(ctx context.Context, in *UpdateBasicInfoRequest, opts ...grpc.CallOption) (*UpdateBasicInfoResponse, error)
+	// 协作者管理
+	GetCollaborators(ctx context.Context, in *GetCollaboratorsRequest, opts ...grpc.CallOption) (*GetCollaboratorsResponse, error)
 	AddCollaborator(ctx context.Context, in *AddCollaboratorRequest, opts ...grpc.CallOption) (*AddCollaboratorResponse, error)
+	RemoveCollaborator(ctx context.Context, in *RemoveCollaboratorRequest, opts ...grpc.CallOption) (*RemoveCollaboratorResponse, error)
 }
 
 type articleServiceClient struct {
@@ -159,10 +164,30 @@ func (c *articleServiceClient) UpdateBasicInfo(ctx context.Context, in *UpdateBa
 	return out, nil
 }
 
+func (c *articleServiceClient) GetCollaborators(ctx context.Context, in *GetCollaboratorsRequest, opts ...grpc.CallOption) (*GetCollaboratorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCollaboratorsResponse)
+	err := c.cc.Invoke(ctx, ArticleService_GetCollaborators_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *articleServiceClient) AddCollaborator(ctx context.Context, in *AddCollaboratorRequest, opts ...grpc.CallOption) (*AddCollaboratorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddCollaboratorResponse)
 	err := c.cc.Invoke(ctx, ArticleService_AddCollaborator_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articleServiceClient) RemoveCollaborator(ctx context.Context, in *RemoveCollaboratorRequest, opts ...grpc.CallOption) (*RemoveCollaboratorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveCollaboratorResponse)
+	err := c.cc.Invoke(ctx, ArticleService_RemoveCollaborator_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +210,10 @@ type ArticleServiceServer interface {
 	CreateArticle(context.Context, *CreateArticleRequest) (*CreateArticleResponse, error)
 	CreateSubmission(context.Context, *CreateSubmissionRequest) (*CreateSubmissionResponse, error)
 	UpdateBasicInfo(context.Context, *UpdateBasicInfoRequest) (*UpdateBasicInfoResponse, error)
+	// 协作者管理
+	GetCollaborators(context.Context, *GetCollaboratorsRequest) (*GetCollaboratorsResponse, error)
 	AddCollaborator(context.Context, *AddCollaboratorRequest) (*AddCollaboratorResponse, error)
+	RemoveCollaborator(context.Context, *RemoveCollaboratorRequest) (*RemoveCollaboratorResponse, error)
 	mustEmbedUnimplementedArticleServiceServer()
 }
 
@@ -226,8 +254,14 @@ func (UnimplementedArticleServiceServer) CreateSubmission(context.Context, *Crea
 func (UnimplementedArticleServiceServer) UpdateBasicInfo(context.Context, *UpdateBasicInfoRequest) (*UpdateBasicInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateBasicInfo not implemented")
 }
+func (UnimplementedArticleServiceServer) GetCollaborators(context.Context, *GetCollaboratorsRequest) (*GetCollaboratorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCollaborators not implemented")
+}
 func (UnimplementedArticleServiceServer) AddCollaborator(context.Context, *AddCollaboratorRequest) (*AddCollaboratorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddCollaborator not implemented")
+}
+func (UnimplementedArticleServiceServer) RemoveCollaborator(context.Context, *RemoveCollaboratorRequest) (*RemoveCollaboratorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveCollaborator not implemented")
 }
 func (UnimplementedArticleServiceServer) mustEmbedUnimplementedArticleServiceServer() {}
 func (UnimplementedArticleServiceServer) testEmbeddedByValue()                        {}
@@ -430,6 +464,24 @@ func _ArticleService_UpdateBasicInfo_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArticleService_GetCollaborators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCollaboratorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).GetCollaborators(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_GetCollaborators_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).GetCollaborators(ctx, req.(*GetCollaboratorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ArticleService_AddCollaborator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddCollaboratorRequest)
 	if err := dec(in); err != nil {
@@ -444,6 +496,24 @@ func _ArticleService_AddCollaborator_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ArticleServiceServer).AddCollaborator(ctx, req.(*AddCollaboratorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ArticleService_RemoveCollaborator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveCollaboratorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).RemoveCollaborator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_RemoveCollaborator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).RemoveCollaborator(ctx, req.(*RemoveCollaboratorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -496,8 +566,16 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ArticleService_UpdateBasicInfo_Handler,
 		},
 		{
+			MethodName: "GetCollaborators",
+			Handler:    _ArticleService_GetCollaborators_Handler,
+		},
+		{
 			MethodName: "AddCollaborator",
 			Handler:    _ArticleService_AddCollaborator_Handler,
+		},
+		{
+			MethodName: "RemoveCollaborator",
+			Handler:    _ArticleService_RemoveCollaborator_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

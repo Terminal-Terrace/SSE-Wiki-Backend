@@ -97,6 +97,38 @@ message UpdateProfileResponse {
     AuthUser user = 1;
 }
 
+// ============================================================================
+// Public User Info (不含 email，用于协作者管理等场景)
+// ============================================================================
+
+message PublicUserInfo {
+    uint32 id = 1;
+    string username = 2;
+    string avatar = 3;
+}
+
+// 用户搜索请求
+message SearchUsersRequest {
+    string keyword = 1;           // 搜索关键词（用户名模糊匹配）
+    uint32 exclude_user_id = 2;   // 排除的用户ID（通常是当前用户）
+    int32 page = 3;               // 页码，从1开始
+    int32 page_size = 4;          // 每页数量，默认10
+}
+
+message SearchUsersResponse {
+    repeated PublicUserInfo users = 1;
+    int64 total = 2;
+}
+
+// 批量获取用户信息请求
+message GetUsersByIdsRequest {
+    repeated uint32 user_ids = 1;
+}
+
+message GetUsersByIdsResponse {
+    repeated PublicUserInfo users = 1;
+}
+
 service AuthService {
     rpc Prelogin (PreloginRequest) returns (PreloginResponse);
     rpc SendCode (CodeRequest) returns (CodeResponse);
@@ -106,5 +138,9 @@ service AuthService {
     rpc RefreshToken (RefreshRequest) returns (RefreshResponse);
     rpc Register (RegisterRequest) returns (RegisterResponse);
     rpc UpdateProfile (UpdateProfileRequest) returns (UpdateProfileResponse);
+    
+    // 用户搜索和批量获取
+    rpc SearchUsers (SearchUsersRequest) returns (SearchUsersResponse);
+    rpc GetUsersByIds (GetUsersByIdsRequest) returns (GetUsersByIdsResponse);
 }
 
