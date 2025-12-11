@@ -221,7 +221,7 @@ message AddCollaboratorResponse {}
 
 // User Article Favourites
 message GetArticleFavouritesRequest {
-  string user_id = 1;
+  uint32 user_id = 1;
 }
 
 message GetArticleFavouritesResponse {
