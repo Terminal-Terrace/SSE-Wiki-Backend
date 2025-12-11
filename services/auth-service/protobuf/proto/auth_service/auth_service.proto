@@ -7,6 +7,7 @@ message AuthUser {
     string username = 2;
     string email = 3;
     string role = 4;
+    string avatar = 5;
 }
 
 enum CodeType {
@@ -86,6 +87,16 @@ message RegisterResponse {
     string redirect_url = 2;
 }
 
+message UpdateProfileRequest {
+    string user_id = 1;
+    string avatar = 2;
+    string username = 3;
+}
+
+message UpdateProfileResponse {
+    AuthUser user = 1;
+}
+
 service AuthService {
     rpc Prelogin (PreloginRequest) returns (PreloginResponse);
     rpc SendCode (CodeRequest) returns (CodeResponse);
@@ -94,5 +105,6 @@ service AuthService {
     rpc GetUserInfo (InfoRequest) returns (InfoResponse);
     rpc RefreshToken (RefreshRequest) returns (RefreshResponse);
     rpc Register (RegisterRequest) returns (RegisterResponse);
+    rpc UpdateProfile (UpdateProfileRequest) returns (UpdateProfileResponse);
 }
 

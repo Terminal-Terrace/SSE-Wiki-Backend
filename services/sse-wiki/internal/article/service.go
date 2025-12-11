@@ -270,6 +270,14 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 	return submission, nil, nil
 }
 
+func (s *ArticleService) GetUserFavouriteArticle(userId uint) ([]uint32, error) {
+	return s.articleRepo.GetFavoriteByUserId(userId)
+}
+
+func (s *ArticleService) UpdateUserFavouriteArticle(userId uint32, articleId uint32, is_added bool) (string, error) {
+	return s.articleRepo.UpdateUserFavourite(uint(userId), uint(articleId), is_added)
+}
+
 // ReviewSubmission 审核提交
 func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, userRole string, req dto.ReviewActionRequest) (interface{}, error) {
 	// 1. 获取submission
@@ -603,6 +611,14 @@ func (s *ArticleService) GetArticlesByModule(moduleID uint, page, pageSize int) 
 			tagNames[j] = tag.Name
 		}
 
+		// 获取文章摘要（从当前版本的content截取前20字符）
+		summary := ""
+		if art.CurrentVersionID != nil && *art.CurrentVersionID > 0 {
+			if content, err := s.versionRepo.GetContent(*art.CurrentVersionID); err == nil {
+				summary = extractSummary(content, 20)
+			}
+		}
+
 		articleItems[i] = map[string]interface{}{
 			"id":                 art.ID,
 			"title":              art.Title,
@@ -613,6 +629,7 @@ func (s *ArticleService) GetArticlesByModule(moduleID uint, page, pageSize int) 
 			"tags":               tagNames,
 			"created_at":         art.CreatedAt.Format("2006-01-02 15:04:05"),
 			"updated_at":         art.UpdatedAt.Format("2006-01-02 15:04:05"),
+			"summary":            summary,
 		}
 	}
 
@@ -622,6 +639,57 @@ func (s *ArticleService) GetArticlesByModule(moduleID uint, page, pageSize int) 
 		"page_size": pageSize,
 		"articles":  articleItems,
 	}, nil
+}
+
+// extractSummary 从HTML内容中提取纯文本摘要
+func extractSummary(htmlContent string, maxLen int) string {
+	if htmlContent == "" {
+		return ""
+	}
+
+	// 简单去除HTML标签，提取纯文本
+	text := stripHTMLTags(htmlContent)
+
+	// 截取指定长度
+	runes := []rune(text)
+	if len(runes) > maxLen {
+		return string(runes[:maxLen]) + "..."
+	}
+	return text
+}
+
+// stripHTMLTags 简单去除HTML标签
+func stripHTMLTags(html string) string {
+	result := ""
+	inTag := false
+	for _, r := range html {
+		if r == '<' {
+			inTag = true
+			continue
+		}
+		if r == '>' {
+			inTag = false
+			continue
+		}
+		if !inTag {
+			result += string(r)
+		}
+	}
+	// 压缩空白字符
+	var compressed []rune
+	lastWasSpace := false
+	for _, r := range result {
+		if r == ' ' || r == '\t' || r == '\n' || r == '\r' {
+			if !lastWasSpace {
+				compressed = append(compressed, ' ')
+				lastWasSpace = true
+			}
+		} else {
+			compressed = append(compressed, r)
+			lastWasSpace = false
+		}
+	}
+	return string(compressed)
 }
 
 // GetReviews 获取审核列表

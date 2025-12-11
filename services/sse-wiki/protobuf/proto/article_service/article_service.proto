@@ -16,6 +16,7 @@ message ArticleListItem {
   uint32 created_by = 7;
   string created_at = 8;
   string updated_at = 9;
+  string summary = 10;  // 文章摘要
 }
 
 message Article {
@@ -74,15 +75,6 @@ message Version {
   uint32 author_id = 6;
   string status = 7;
   string created_at = 8;
-}
-
-// User Article Favourites
-message GetArticleFavouritesByUserIdRequest {
-  string user_id = 1;
-}
-
-message GetArticleFavouritesByUserIdResponse {
-  repeated uint32 id = 1;
 }
 
 message VersionDiff {
@@ -227,6 +219,26 @@ message AddCollaboratorRequest {
 
 message AddCollaboratorResponse {}
 
+// User Article Favourites
+message GetArticleFavouritesRequest {
+  uint32 user_id = 1;
+}
+
+message GetArticleFavouritesResponse {
+  repeated uint32 id = 1;
+}
+
+// User change Favourites Requests
+message UpdateUserFavouritesRequest {
+    uint32 user_id = 1;
+    uint32 article_id = 2;
+    bool is_add = 3;
+}
+
+message UpdateUserFavouritesResponse {
+    string status = 1;
+}
+
 // ============================================================================
 // Service
 // ============================================================================
@@ -238,8 +250,10 @@ service ArticleService {
   rpc GetVersions(GetVersionsRequest) returns (GetVersionsResponse);
   rpc GetVersion(GetVersionRequest) returns (GetVersionResponse);
   rpc GetVersionDiff(GetVersionDiffRequest) returns (GetVersionDiffResponse);
-  
+  rpc GetUserArticleFavourites(GetArticleFavouritesRequest) returns (GetArticleFavouritesResponse);
+
   // 编辑功能
+  rpc UpdateUserFavourites(UpdateUserFavouritesRequest) returns (UpdateUserFavouritesResponse);
   rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
   rpc CreateSubmission(CreateSubmissionRequest) returns (CreateSubmissionResponse);
   rpc UpdateBasicInfo(UpdateBasicInfoRequest) returns (UpdateBasicInfoResponse);

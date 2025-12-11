@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"terminal-terrace/sse-wiki/internal/article"
@@ -59,6 +60,7 @@ func (s *ArticleServiceImpl) GetArticlesByModule(ctx context.Context, req *pb.Ge
 				CreatedBy:        uint32(getUint(a, "created_by")),
 				CreatedAt:        getString(a, "created_at"),
 				UpdatedAt:        getString(a, "updated_at"),
+				Summary:          getString(a, "summary"),
 			}
 		}
 	}
@@ -68,6 +70,33 @@ func (s *ArticleServiceImpl) GetArticlesByModule(ctx context.Context, req *pb.Ge
 		Page:     int32(resultPage),
 		PageSize: int32(resultPageSize),
 		Articles: articles,
+	}, nil
+}
+
+// Get User favourites
+func (s *ArticleServiceImpl) GetUserArticleFavourites(ctx context.Context, req *pb.GetArticleFavouritesRequest) (*pb.GetArticleFavouritesResponse, error) {
+	UserId, err := strconv.ParseInt(req.UserId, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	res, err := s.getArticleService().GetUserFavouriteArticle(uint(UserId))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.GetArticleFavouritesResponse{
+		Id: res,
+	}, nil
+}
+
+func (s *ArticleServiceImpl) UpdateUserFavourites(ctx context.Context, req *pb.UpdateUserFavouritesRequest) (*pb.UpdateUserFavouritesResponse, error) {
+	res, err := s.getArticleService().UpdateUserFavouriteArticle(req.UserId, req.ArticleId, req.IsAdd)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UpdateUserFavouritesResponse{
+		Status: res,
 	}, nil
 }
 
@@ -230,7 +259,7 @@ func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.Creat
 	submission, publishedVersion, err := s.getArticleService().CreateSubmission(
 		uint(req.ArticleId), subReq, uint(req.UserId), req.UserRole,
 	)
-	
+
 	if err != nil {
 		// Check for merge conflict error
 		if conflictErr, ok := err.(*article.MergeConflictError); ok {
@@ -275,7 +304,7 @@ func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.Creat
 // UpdateBasicInfo updates article basic information
 func (s *ArticleServiceImpl) UpdateBasicInfo(ctx context.Context, req *pb.UpdateBasicInfoRequest) (*pb.UpdateBasicInfoResponse, error) {
 	updateReq := dto.UpdateArticleBasicInfoRequest{}
-	
+
 	if req.HasTitle {
 		title := req.Title
 		updateReq.Title = &title

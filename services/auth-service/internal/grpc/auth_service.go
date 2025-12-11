@@ -148,6 +148,10 @@ func (s *AuthServiceImpl) GetUserInfo(ctx context.Context, req *pb.InfoRequest) 
 	if user.Username != nil {
 		username = *user.Username
 	}
+	avatar := ""
+	if user.Avatar != nil {
+		avatar = *user.Avatar
+	}
 
 	return &pb.InfoResponse{
 		User: &pb.AuthUser{
@@ -155,6 +159,7 @@ func (s *AuthServiceImpl) GetUserInfo(ctx context.Context, req *pb.InfoRequest) 
 			Username: username,
 			Email:    user.Email,
 			Role:     user.Role,
+			Avatar:   avatar,
 		},
 	}, nil
 }
@@ -204,5 +209,50 @@ func (s *AuthServiceImpl) Register(ctx context.Context, req *pb.RegisterRequest)
 	return &pb.RegisterResponse{
 		RefreshToken: result.RefreshToken,
 		RedirectUrl:  result.RedirectUrl,
+	}, nil
+}
+
+// UpdateProfile updates user profile (avatar, username)
+func (s *AuthServiceImpl) UpdateProfile(ctx context.Context, req *pb.UpdateProfileRequest) (*pb.UpdateProfileResponse, error) {
+	if req.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "user_id is required")
+	}
+
+	// Get user from database
+	user, bizErr := pkg.GetUserByID(req.UserId)
+	if bizErr != nil {
+		return nil, status.Error(codes.NotFound, bizErr.Msg)
+	}
+
+	// Update fields if provided
+	if req.Avatar != "" {
+		user.Avatar = &req.Avatar
+	}
+	if req.Username != "" {
+		user.Username = &req.Username
+	}
+
+	// Save to database
+	if err := database.PostgresDB.Save(user).Error; err != nil {
+		return nil, status.Error(codes.Internal, "failed to update profile")
+	}
+
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+	avatar := ""
+	if user.Avatar != nil {
+		avatar = *user.Avatar
+	}
+
+	return &pb.UpdateProfileResponse{
+		User: &pb.AuthUser{
+			UserId:   req.UserId,
+			Username: username,
+			Email:    user.Email,
+			Role:     user.Role,
+			Avatar:   avatar,
+		},
 	}, nil
 }
