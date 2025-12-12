@@ -50,7 +50,14 @@ func (s *ModuleServiceImpl) GetModule(ctx context.Context, req *pb.GetModuleRequ
 	}
 
 	return &pb.GetModuleResponse{
-		Module: convertModule(mod),
+		Module: &pb.Module{
+			Id:          uint32(mod.ID),
+			Description: mod.Description,
+			ParentId:    uint32(*mod.ParentID),
+			OwnerId:     uint32(mod.OwnerID),
+			CreatedAt:   mod.CreatedAt.String(),
+			UpdatedAt:   mod.UpdatedAt.String(),
+		},
 	}, nil
 }
 
