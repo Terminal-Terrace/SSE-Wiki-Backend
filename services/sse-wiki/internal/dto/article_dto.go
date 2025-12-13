@@ -47,7 +47,7 @@ type UpdateArticleBasicInfoRequest struct {
 // AddCollaboratorRequest 添加协作者请求
 type AddCollaboratorRequest struct {
 	UserID uint   `json:"user_id" binding:"required"`
-	Role   string `json:"role" binding:"required,oneof=owner moderator"`
+	Role   string `json:"role" binding:"required,oneof=admin moderator"`
 }
 
 // CollaboratorInfo 协作者信息

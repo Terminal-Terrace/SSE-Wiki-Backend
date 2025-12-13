@@ -1,11 +1,22 @@
 package user
 
 import (
+	"strings"
 	"terminal-terrace/auth-service/internal/database"
 	userModel "terminal-terrace/auth-service/internal/model/user"
 
 	"gorm.io/gorm"
 )
+
+// escapeLikePattern escapes special characters in LIKE patterns
+// to prevent unexpected wildcard behavior from user input.
+// Characters escaped: % (any chars), _ (single char), \ (escape char)
+func escapeLikePattern(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\") // escape backslash first
+	s = strings.ReplaceAll(s, "%", "\\%")
+	s = strings.ReplaceAll(s, "_", "\\_")
+	return s
+}
 
 // PublicUserInfo 公开用户信息（不含 email）
 type PublicUserInfo struct {
@@ -38,8 +49,10 @@ func (r *UserRepository) SearchUsers(keyword string, excludeUserID uint, page, p
 	query := r.db.Model(&userModel.User{})
 
 	// 关键词搜索（用户名模糊匹配）
+	// 转义 LIKE 特殊字符防止意外的通配符行为
 	if keyword != "" {
-		query = query.Where("username ILIKE ?", "%"+keyword+"%")
+		escapedKeyword := escapeLikePattern(keyword)
+		query = query.Where("username ILIKE ?", "%"+escapedKeyword+"%")
 	}
 
 	// 排除指定用户

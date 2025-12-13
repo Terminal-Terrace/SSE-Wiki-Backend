@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"terminal-terrace/sse-wiki/internal/database"
+	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
 	"terminal-terrace/sse-wiki/internal/module"
 	pb "terminal-terrace/sse-wiki/protobuf/proto/module_service"
 
@@ -28,7 +29,10 @@ func NewModuleServiceImpl() *ModuleServiceImpl {
 
 // GetModuleTree returns the complete module tree
 func (s *ModuleServiceImpl) GetModuleTree(ctx context.Context, req *pb.GetModuleTreeRequest) (*pb.GetModuleTreeResponse, error) {
-	tree, err := s.moduleService.GetModuleTree(uint(req.UserId))
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	tree, err := s.moduleService.GetModuleTree(uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -81,6 +85,9 @@ func (s *ModuleServiceImpl) GetBreadcrumbs(ctx context.Context, req *pb.GetBread
 
 // CreateModule creates a new module
 func (s *ModuleServiceImpl) CreateModule(ctx context.Context, req *pb.CreateModuleRequest) (*pb.CreateModuleResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	createReq := module.CreateModuleRequest{
 		Name:        req.Name,
 		Description: req.Description,
@@ -90,7 +97,7 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, req *pb.CreateModu
 		createReq.ParentID = &parentID
 	}
 
-	mod, err := s.moduleService.CreateModule(createReq, uint(req.UserId), req.UserRole)
+	mod, err := s.moduleService.CreateModule(createReq, uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -102,6 +109,9 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, req *pb.CreateModu
 
 // UpdateModule updates an existing module
 func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, req *pb.UpdateModuleRequest) (*pb.UpdateModuleResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	updateReq := module.UpdateModuleRequest{
 		Name:        req.Name,
 		Description: req.Description,
@@ -111,7 +121,7 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, req *pb.UpdateModu
 		updateReq.ParentID = &parentID
 	}
 
-	err := s.moduleService.UpdateModule(uint(req.Id), updateReq, uint(req.UserId), req.UserRole)
+	err := s.moduleService.UpdateModule(uint(req.Id), updateReq, uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -121,7 +131,10 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, req *pb.UpdateModu
 
 // DeleteModule deletes a module and its children
 func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, req *pb.DeleteModuleRequest) (*pb.DeleteModuleResponse, error) {
-	count, err := s.moduleService.DeleteModule(uint(req.Id), uint(req.UserId), req.UserRole)
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	count, err := s.moduleService.DeleteModule(uint(req.Id), uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -131,7 +144,10 @@ func (s *ModuleServiceImpl) DeleteModule(ctx context.Context, req *pb.DeleteModu
 
 // GetModerators returns the list of moderators for a module
 func (s *ModuleServiceImpl) GetModerators(ctx context.Context, req *pb.GetModeratorsRequest) (*pb.GetModeratorsResponse, error) {
-	moderators, err := s.moduleService.GetModerators(uint(req.ModuleId), uint(req.UserId), req.UserRole)
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	moderators, err := s.moduleService.GetModerators(uint(req.ModuleId), uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -151,12 +167,15 @@ func (s *ModuleServiceImpl) GetModerators(ctx context.Context, req *pb.GetModera
 
 // AddModerator adds a moderator to a module
 func (s *ModuleServiceImpl) AddModerator(ctx context.Context, req *pb.AddModeratorRequest) (*pb.AddModeratorResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	addReq := module.AddModeratorRequest{
 		UserID: uint(req.TargetUserId),
 		Role:   req.Role,
 	}
 
-	err := s.moduleService.AddModerator(uint(req.ModuleId), addReq, uint(req.UserId), req.UserRole)
+	err := s.moduleService.AddModerator(uint(req.ModuleId), addReq, uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -166,7 +185,10 @@ func (s *ModuleServiceImpl) AddModerator(ctx context.Context, req *pb.AddModerat
 
 // RemoveModerator removes a moderator from a module
 func (s *ModuleServiceImpl) RemoveModerator(ctx context.Context, req *pb.RemoveModeratorRequest) (*pb.RemoveModeratorResponse, error) {
-	err := s.moduleService.RemoveModerator(uint(req.ModuleId), uint(req.TargetUserId), uint(req.UserId), req.UserRole)
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	err := s.moduleService.RemoveModerator(uint(req.ModuleId), uint(req.TargetUserId), uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -176,12 +198,13 @@ func (s *ModuleServiceImpl) RemoveModerator(ctx context.Context, req *pb.RemoveM
 
 // HandleLock handles edit lock acquire/release
 func (s *ModuleServiceImpl) HandleLock(ctx context.Context, req *pb.HandleLockRequest) (*pb.HandleLockResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	lockInfo := &pb.LockInfo{}
 
 	if req.Action == "acquire" {
-		// For acquire, we need username - for now use a placeholder
-		// In production, this should come from the user service
-		result, err := s.lockService.AcquireLock(uint(req.UserId), "User")
+		result, err := s.lockService.AcquireLock(uint(user.UserID), user.Username)
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -196,7 +219,7 @@ func (s *ModuleServiceImpl) HandleLock(ctx context.Context, req *pb.HandleLockRe
 			lockInfo.LockedAt = result.LockedAt
 		}
 	} else if req.Action == "release" {
-		err := s.lockService.ReleaseLock(uint(req.UserId))
+		err := s.lockService.ReleaseLock(uint(user.UserID))
 		if err != nil {
 			return nil, status.Error(codes.Internal, err.Error())
 		}
@@ -236,6 +259,20 @@ func convertModule(mod interface{}) *pb.Module {
 			Name:        m.Name,
 			Description: m.Description,
 			OwnerId:     uint32(m.OwnerID),
+		}
+	case *moduleModel.Module:
+		parentID := uint32(0)
+		if m.ParentID != nil {
+			parentID = uint32(*m.ParentID)
+		}
+		return &pb.Module{
+			Id:          uint32(m.ID),
+			Name:        m.ModuleName,
+			Description: m.Description,
+			ParentId:    parentID,
+			OwnerId:     uint32(m.OwnerID),
+			CreatedAt:   m.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   m.UpdatedAt.Format("2006-01-02 15:04:05"),
 		}
 	default:
 		// For other types, we need to use reflection or type assertion

@@ -18,7 +18,9 @@ func NewModuleService(db *gorm.DB) *ModuleService {
 }
 
 // GetModuleTree 获取模块树
-func (s *ModuleService) GetModuleTree(userID uint) ([]ModuleTreeNode, error) {
+// userID: 用户ID
+// userRole: 用户的全局角色（来自 JWT），"admin" 表示全局管理员
+func (s *ModuleService) GetModuleTree(userID uint, userRole string) ([]ModuleTreeNode, error) {
 	// 1. 获取所有模块
 	modules, err := s.moduleRepo.GetAllModules()
 	if err != nil {
@@ -28,28 +30,41 @@ func (s *ModuleService) GetModuleTree(userID uint) ([]ModuleTreeNode, error) {
 		)
 	}
 
-	// 2. 获取用户的协作者模块ID列表
-	moderatorModuleIDs, err := s.moduleRepo.GetUserModeratorModuleIDs(userID)
-	if err != nil {
-		return nil, response.NewBusinessError(
-			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("获取协作者信息失败"),
-		)
-	}
+	// 2. 检查是否是全局管理员
+	isGlobalAdmin := userRole == "admin"
 
-	// 将ID列表转为map便于查询
+	// 3. 获取用户的协作者模块ID列表（如果不是全局管理员）
 	moderatorMap := make(map[uint]bool)
-	for _, id := range moderatorModuleIDs {
-		moderatorMap[id] = true
+	if !isGlobalAdmin {
+		moderatorModuleIDs, err := s.moduleRepo.GetUserModeratorModuleIDs(userID)
+		if err != nil {
+			return nil, response.NewBusinessError(
+				response.WithErrorCode(response.Fail),
+				response.WithErrorMessage("获取协作者信息失败"),
+			)
+		}
+
+		// 将ID列表转为map便于查询
+		for _, id := range moderatorModuleIDs {
+			moderatorMap[id] = true
+		}
 	}
 
-	// 3. 构建树形结构
-	tree := s.buildTree(modules, nil, moderatorMap)
+	// 4. 构建树形结构
+	tree := s.buildTree(modules, nil, moderatorMap, isGlobalAdmin)
 	return tree, nil
 }
 
 // buildTree 递归构建树形结构
-func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, moderatorMap map[uint]bool) []ModuleTreeNode {
+// isGlobalAdmin: 如果为 true，所有模块的 IsModerator 都返回 true
+// parentIsModerator: 父模块的 is_moderator 状态，用于权限继承
+func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, moderatorMap map[uint]bool, isGlobalAdmin bool) []ModuleTreeNode {
+	return s.buildTreeWithInheritance(modules, parentID, moderatorMap, isGlobalAdmin, false)
+}
+
+// buildTreeWithInheritance 递归构建树形结构（支持权限继承）
+// parentIsModerator: 父模块的 is_moderator 状态，子模块继承此状态
+func (s *ModuleService) buildTreeWithInheritance(modules []moduleModel.Module, parentID *uint, moderatorMap map[uint]bool, isGlobalAdmin bool, parentIsModerator bool) []ModuleTreeNode {
 	var tree []ModuleTreeNode
 
 	for _, module := range modules {
@@ -57,13 +72,18 @@ func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, 
 		if (parentID == nil && module.ParentID == nil) ||
 			(parentID != nil && module.ParentID != nil && *parentID == *module.ParentID) {
 
+			// 全局管理员对所有模块都有管理权限
+			// 或者用户直接有权限
+			// 或者从父模块继承权限
+			isModerator := isGlobalAdmin || moderatorMap[module.ID] || parentIsModerator
+
 			node := ModuleTreeNode{
 				ID:          module.ID,
 				Name:        module.ModuleName,
 				Description: module.Description,
 				OwnerID:     module.OwnerID,
-				IsModerator: moderatorMap[module.ID],
-				Children:    s.buildTree(modules, &module.ID, moderatorMap),
+				IsModerator: isModerator,
+				Children:    s.buildTreeWithInheritance(modules, &module.ID, moderatorMap, isGlobalAdmin, isModerator),
 			}
 			tree = append(tree, node)
 		}

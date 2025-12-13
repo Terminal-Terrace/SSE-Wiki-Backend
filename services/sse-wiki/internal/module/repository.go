@@ -90,17 +90,21 @@ func (r *ModuleRepository) CountChildModules(id uint) (int64, error) {
 	return count, err
 }
 
-// GetUserModeratorModuleIDs 获取用户的协作者模块ID列表
+// GetUserModeratorModuleIDs 获取用户有管理权限的模块ID列表
+// 同时查询 modules.owner_id 和 module_moderators 表，使用 UNION 合并结果
+// 修复：之前只查询 module_moderators 表，导致 owner 的 is_moderator 返回 false
 func (r *ModuleRepository) GetUserModeratorModuleIDs(userID uint) ([]uint, error) {
-	var moderators []moduleModel.ModuleModerator
-	err := r.db.Where("user_id = ?", userID).Find(&moderators).Error
+	var ids []uint
+	// 使用 UNION 合并两个来源的模块ID：
+	// 1. modules.owner_id = userID（模块所有者）
+	// 2. module_moderators.user_id = userID（协作者表）
+	err := r.db.Raw(`
+		SELECT id FROM modules WHERE owner_id = ?
+		UNION
+		SELECT module_id FROM module_moderators WHERE user_id = ?
+	`, userID, userID).Scan(&ids).Error
 	if err != nil {
 		return nil, err
-	}
-
-	ids := make([]uint, len(moderators))
-	for i, m := range moderators {
-		ids[i] = m.ModuleID
 	}
 	return ids, nil
 }
@@ -164,4 +168,77 @@ func (r *ModuleRepository) CheckIsDescendant(moduleID, potentialDescendantID uin
 		SELECT COUNT(*) FROM descendants WHERE id = ?
 	`, moduleID, potentialDescendantID).Scan(&count).Error
 	return count > 0, err
+}
+
+// GetAncestorModuleIDs 获取模块的所有祖先模块ID（从直接父模块到根模块）
+// 使用递归 CTE 向上查询父模块链
+func (r *ModuleRepository) GetAncestorModuleIDs(moduleID uint) ([]uint, error) {
+	var ids []uint
+	err := r.db.Raw(`
+		WITH RECURSIVE ancestors AS (
+			SELECT id, parent_id FROM modules WHERE id = ?
+			UNION ALL
+			SELECT m.id, m.parent_id FROM modules m
+			INNER JOIN ancestors a ON m.id = a.parent_id
+		)
+		SELECT id FROM ancestors WHERE id != ?
+	`, moduleID, moduleID).Scan(&ids).Error
+	return ids, err
+}
+
+// GetUserPermissionWithInheritance 获取用户在模块的权限（包含继承）
+// 返回用户在该模块或其祖先模块中的最高权限角色
+// 返回值：role（角色名）, inherited（是否继承）, error
+func (r *ModuleRepository) GetUserPermissionWithInheritance(moduleID uint, userID uint) (string, bool, error) {
+	// 1. 先检查直接权限
+	// 检查是否是模块所有者
+	var ownerID uint
+	err := r.db.Table("modules").
+		Select("owner_id").
+		Where("id = ?", moduleID).
+		Scan(&ownerID).Error
+	if err == nil && ownerID == userID {
+		return "owner", false, nil
+	}
+
+	// 检查 module_moderators 表
+	var role string
+	err = r.db.Table("module_moderators").
+		Select("role").
+		Where("module_id = ? AND user_id = ?", moduleID, userID).
+		Scan(&role).Error
+	if err == nil && role != "" {
+		return role, false, nil
+	}
+
+	// 2. 检查继承权限（从祖先模块）
+	ancestorIDs, err := r.GetAncestorModuleIDs(moduleID)
+	if err != nil {
+		return "", false, err
+	}
+
+	for _, ancestorID := range ancestorIDs {
+		// 检查是否是祖先模块所有者
+		var ancestorOwnerID uint
+		err := r.db.Table("modules").
+			Select("owner_id").
+			Where("id = ?", ancestorID).
+			Scan(&ancestorOwnerID).Error
+		if err == nil && ancestorOwnerID == userID {
+			return "owner", true, nil
+		}
+
+		// 检查祖先模块的 module_moderators 表
+		var ancestorRole string
+		err = r.db.Table("module_moderators").
+			Select("role").
+			Where("module_id = ? AND user_id = ?", ancestorID, userID).
+			Scan(&ancestorRole).Error
+		if err == nil && ancestorRole != "" {
+			return ancestorRole, true, nil
+		}
+	}
+
+	// 无权限
+	return "", false, nil
 }
