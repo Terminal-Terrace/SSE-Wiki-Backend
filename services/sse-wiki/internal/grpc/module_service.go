@@ -53,14 +53,21 @@ func (s *ModuleServiceImpl) GetModule(ctx context.Context, req *pb.GetModuleRequ
 		return nil, status.Error(codes.NotFound, err.Error())
 	}
 
+	// 处理 ParentID 可能为 nil 的情况
+	parentID := uint32(0)
+	if mod.ParentID != nil {
+		parentID = uint32(*mod.ParentID)
+	}
+
 	return &pb.GetModuleResponse{
 		Module: &pb.Module{
 			Id:          uint32(mod.ID),
+			Name:        mod.ModuleName,
 			Description: mod.Description,
-			ParentId:    uint32(*mod.ParentID),
+			ParentId:    parentID,
 			OwnerId:     uint32(mod.OwnerID),
-			CreatedAt:   mod.CreatedAt.String(),
-			UpdatedAt:   mod.UpdatedAt.String(),
+			CreatedAt:   mod.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:   mod.UpdatedAt.Format("2006-01-02 15:04:05"),
 		},
 	}, nil
 }
@@ -238,6 +245,7 @@ func convertModuleTreeNode(node module.ModuleTreeNode) *pb.ModuleTreeNode {
 		Description: node.Description,
 		OwnerId:     uint32(node.OwnerID),
 		IsModerator: node.IsModerator,
+		Role:        node.Role,
 	}
 
 	if len(node.Children) > 0 {

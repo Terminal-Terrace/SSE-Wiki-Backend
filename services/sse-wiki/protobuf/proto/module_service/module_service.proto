@@ -22,6 +22,7 @@ message ModuleTreeNode {
   uint32 owner_id = 4;
   bool is_moderator = 5;
   repeated ModuleTreeNode children = 6;
+  string role = 7;  // 当前用户在该模块的角色: owner, admin, moderator, 空字符串表示无权限
 }
 
 message Module {
