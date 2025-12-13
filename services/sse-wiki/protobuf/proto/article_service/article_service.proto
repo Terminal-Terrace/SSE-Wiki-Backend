@@ -36,6 +36,8 @@ message Article {
   string created_at = 14;
   string updated_at = 15;
   repeated HistoryEntry history = 16;
+  bool is_author = 17;    // 当前用户是否是文章作者
+  bool can_delete = 18;   // 当前用户是否可以删除文章
 }
 
 // 文章历史条目（版本或提交）
@@ -130,8 +132,6 @@ message GetArticlesByModuleResponse {
 
 message GetArticleRequest {
   uint32 id = 1;
-  uint32 user_id = 2;
-  string user_role = 3;
 }
 
 message GetArticleResponse {
@@ -182,8 +182,6 @@ message CreateSubmissionRequest {
   string content = 2;
   string commit_message = 3;
   uint32 base_version_id = 4;
-  uint32 user_id = 5;
-  string user_role = 6;
 }
 
 message CreateSubmissionResponse {
@@ -203,8 +201,6 @@ message UpdateBasicInfoRequest {
   bool has_title = 5;
   bool has_tags = 6;
   bool has_is_review_required = 7;
-  uint32 user_id = 8;
-  string user_role = 9;
 }
 
 message UpdateBasicInfoResponse {}
@@ -212,9 +208,7 @@ message UpdateBasicInfoResponse {}
 message AddCollaboratorRequest {
   uint32 article_id = 1;
   uint32 target_user_id = 2;
-  string role = 3;  // owner, moderator
-  uint32 user_id = 4;
-  string user_role = 5;
+  string role = 3;  // admin, moderator
 }
 
 message AddCollaboratorResponse {}
@@ -229,8 +223,6 @@ message ArticleCollaboratorInfo {
 
 message GetCollaboratorsRequest {
   uint32 article_id = 1;
-  uint32 user_id = 2;
-  string user_role = 3;
 }
 
 message GetCollaboratorsResponse {
@@ -240,11 +232,19 @@ message GetCollaboratorsResponse {
 message RemoveCollaboratorRequest {
   uint32 article_id = 1;
   uint32 target_user_id = 2;
-  uint32 user_id = 3;
-  string user_role = 4;
 }
 
 message RemoveCollaboratorResponse {}
+
+// 删除文章
+message DeleteArticleRequest {
+  uint32 article_id = 1;
+}
+
+message DeleteArticleResponse {
+  bool success = 1;
+  string message = 2;
+}
 
 // User Article Favourites
 message GetArticleFavouritesRequest {
@@ -289,4 +289,7 @@ service ArticleService {
   rpc GetCollaborators(GetCollaboratorsRequest) returns (GetCollaboratorsResponse);
   rpc AddCollaborator(AddCollaboratorRequest) returns (AddCollaboratorResponse);
   rpc RemoveCollaborator(RemoveCollaboratorRequest) returns (RemoveCollaboratorResponse);
+  
+  // 删除文章
+  rpc DeleteArticle(DeleteArticleRequest) returns (DeleteArticleResponse);
 }
