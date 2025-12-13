@@ -4,8 +4,18 @@ import (
 	"context"
 	"strings"
 
+	authsdk "terminal-terrace/auth-sdk"
+	"terminal-terrace/sse-wiki/config"
+
 	"google.golang.org/grpc/metadata"
 )
+
+// GetUserFromContext 从 gRPC context 获取用户信息
+// 使用 auth-sdk 解析 JWT token
+// 如果没有 token 或解析失败，返回空的 UserContext（UserID=0）
+func GetUserFromContext(ctx context.Context) *authsdk.UserContext {
+	return authsdk.GetUserFromContext(ctx, config.Conf.JWT.Secret)
+}
 
 // ExtractToken extracts JWT token from gRPC metadata
 // The token is expected in the "authorization" metadata key with "Bearer " prefix
@@ -31,6 +41,7 @@ func ExtractToken(ctx context.Context) string {
 
 // ExtractUserInfo extracts user_id and user_role from gRPC metadata
 // These are passed from Node.js Gateway after JWT validation
+// Deprecated: 使用 GetUserFromContext 代替，它直接从 JWT 解析用户信息
 func ExtractUserInfo(ctx context.Context) (userID uint, userRole string) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
