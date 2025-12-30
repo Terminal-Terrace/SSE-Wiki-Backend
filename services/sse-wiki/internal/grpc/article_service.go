@@ -102,7 +102,10 @@ func (s *ArticleServiceImpl) UpdateUserFavourites(ctx context.Context, req *pb.U
 
 // GetArticle returns article details
 func (s *ArticleServiceImpl) GetArticle(ctx context.Context, req *pb.GetArticleRequest) (*pb.GetArticleResponse, error) {
-	result, err := s.getArticleService().GetArticle(uint(req.Id), uint(req.UserId), req.UserRole)
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	result, err := s.getArticleService().GetArticle(uint(req.Id), uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.NotFound, err.Error())
 	}
@@ -122,6 +125,8 @@ func (s *ArticleServiceImpl) GetArticle(ctx context.Context, req *pb.GetArticleR
 		CreatedBy:        uint32(getUint(result, "created_by")),
 		CreatedAt:        getString(result, "created_at"),
 		UpdatedAt:        getString(result, "updated_at"),
+		IsAuthor:         getBool(result, "is_author"),
+		CanDelete:        getBool(result, "can_delete"),
 	}
 
 	// Convert pending submissions if present
@@ -250,6 +255,9 @@ func (s *ArticleServiceImpl) CreateArticle(ctx context.Context, req *pb.CreateAr
 
 // CreateSubmission creates a new submission for an article
 func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.CreateSubmissionRequest) (*pb.CreateSubmissionResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	subReq := dto.SubmissionRequest{
 		Content:       req.Content,
 		CommitMessage: req.CommitMessage,
@@ -257,7 +265,7 @@ func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.Creat
 	}
 
 	submission, publishedVersion, err := s.getArticleService().CreateSubmission(
-		uint(req.ArticleId), subReq, uint(req.UserId), req.UserRole,
+		uint(req.ArticleId), subReq, uint(user.UserID), user.Role,
 	)
 
 	if err != nil {
@@ -303,6 +311,9 @@ func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.Creat
 
 // UpdateBasicInfo updates article basic information
 func (s *ArticleServiceImpl) UpdateBasicInfo(ctx context.Context, req *pb.UpdateBasicInfoRequest) (*pb.UpdateBasicInfoResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	updateReq := dto.UpdateArticleBasicInfoRequest{}
 
 	if req.HasTitle {
@@ -318,7 +329,7 @@ func (s *ArticleServiceImpl) UpdateBasicInfo(ctx context.Context, req *pb.Update
 		updateReq.IsReviewRequired = &isReviewRequired
 	}
 
-	err := s.getArticleService().UpdateBasicInfo(uint(req.ArticleId), uint(req.UserId), req.UserRole, updateReq)
+	err := s.getArticleService().UpdateBasicInfo(uint(req.ArticleId), uint(user.UserID), user.Role, updateReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -328,7 +339,10 @@ func (s *ArticleServiceImpl) UpdateBasicInfo(ctx context.Context, req *pb.Update
 
 // GetCollaborators returns the list of collaborators for an article
 func (s *ArticleServiceImpl) GetCollaborators(ctx context.Context, req *pb.GetCollaboratorsRequest) (*pb.GetCollaboratorsResponse, error) {
-	collaborators, err := s.getArticleService().GetCollaborators(uint(req.ArticleId), uint(req.UserId), req.UserRole)
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	collaborators, err := s.getArticleService().GetCollaborators(uint(req.ArticleId), uint(user.UserID), user.Role)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -348,12 +362,15 @@ func (s *ArticleServiceImpl) GetCollaborators(ctx context.Context, req *pb.GetCo
 
 // AddCollaborator adds a collaborator to an article
 func (s *ArticleServiceImpl) AddCollaborator(ctx context.Context, req *pb.AddCollaboratorRequest) (*pb.AddCollaboratorResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
 	addReq := dto.AddCollaboratorRequest{
 		UserID: uint(req.TargetUserId),
 		Role:   req.Role,
 	}
 
-	err := s.getArticleService().AddCollaborator(uint(req.ArticleId), uint(req.UserId), req.UserRole, addReq)
+	err := s.getArticleService().AddCollaborator(uint(req.ArticleId), uint(user.UserID), user.Role, addReq)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -363,12 +380,37 @@ func (s *ArticleServiceImpl) AddCollaborator(ctx context.Context, req *pb.AddCol
 
 // RemoveCollaborator removes a collaborator from an article
 func (s *ArticleServiceImpl) RemoveCollaborator(ctx context.Context, req *pb.RemoveCollaboratorRequest) (*pb.RemoveCollaboratorResponse, error) {
-	err := s.getArticleService().RemoveCollaborator(uint(req.ArticleId), uint(req.UserId), req.UserRole, uint(req.TargetUserId))
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	err := s.getArticleService().RemoveCollaborator(uint(req.ArticleId), uint(user.UserID), user.Role, uint(req.TargetUserId))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
 	return &pb.RemoveCollaboratorResponse{}, nil
+}
+
+// DeleteArticle deletes an article and all related data
+func (s *ArticleServiceImpl) DeleteArticle(ctx context.Context, req *pb.DeleteArticleRequest) (*pb.DeleteArticleResponse, error) {
+	// 从 JWT 获取用户信息
+	user := GetUserFromContext(ctx)
+
+	err := s.getArticleService().DeleteArticle(uint(req.ArticleId), uint(user.UserID), user.Role)
+	if err != nil {
+		if err.Error() == "文章不存在" {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		if err.Error() == "permission denied: only Global_Admin, Author or Admin can delete articles" {
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		}
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &pb.DeleteArticleResponse{
+		Success: true,
+		Message: "文章删除成功",
+	}, nil
 }
 
 // Helper to get the underlying article service
@@ -473,46 +515,18 @@ func getStringSlice(m map[string]interface{}, key string) []string {
 	return nil
 }
 
-func convertVersion(v interface{}) *pb.Version {
-	if vMap, ok := v.(map[string]interface{}); ok {
-		return &pb.Version{
-			Id:            uint32(getUint(vMap, "id")),
-			ArticleId:     uint32(getUint(vMap, "article_id")),
-			VersionNumber: int32(getInt(vMap, "version_number")),
-			Content:       getString(vMap, "content"),
-			CommitMessage: getString(vMap, "commit_message"),
-			AuthorId:      uint32(getUint(vMap, "author_id")),
-			Status:        getString(vMap, "status"),
-			CreatedAt:     getString(vMap, "created_at"),
-		}
+func convertVersionFromDTO(v *articleModel.ArticleVersion) *pb.Version {
+	if v == nil {
+		return &pb.Version{}
 	}
-	return &pb.Version{}
+	return convertArticleVersion(v)
 }
 
-func convertVersionFromDTO(v interface{}) *pb.Version {
-	if vMap, ok := v.(map[string]interface{}); ok {
-		return convertVersion(vMap)
+func convertSubmissionFromDTO(s *articleModel.ReviewSubmission) *pb.Submission {
+	if s == nil {
+		return &pb.Submission{}
 	}
-	return &pb.Version{}
-}
-
-func convertSubmissionFromDTO(s interface{}) *pb.Submission {
-	if sMap, ok := s.(map[string]interface{}); ok {
-		return &pb.Submission{
-			Id:                uint32(getUint(sMap, "id")),
-			ArticleId:         uint32(getUint(sMap, "article_id")),
-			ArticleTitle:      getString(sMap, "article_title"),
-			ProposedVersionId: uint32(getUint(sMap, "proposed_version_id")),
-			BaseVersionId:     uint32(getUint(sMap, "base_version_id")),
-			SubmittedBy:       uint32(getUint(sMap, "submitted_by")),
-			SubmittedByName:   getString(sMap, "submitted_by_name"),
-			Status:            getString(sMap, "status"),
-			CommitMessage:     getString(sMap, "commit_message"),
-			HasConflict:       getBool(sMap, "has_conflict"),
-			CreatedAt:         getString(sMap, "created_at"),
-		}
-	}
-	return &pb.Submission{}
+	return convertReviewSubmission(s)
 }
 
 func getInt64(m map[string]interface{}, key string) int64 {
@@ -620,27 +634,17 @@ func convertReviewSubmission(s *articleModel.ReviewSubmission) *pb.Submission {
 }
 
 // getVersionContent extracts content from ArticleVersion object
-func getVersionContent(v interface{}) string {
-	// 尝试直接类型断言
-	if version, ok := v.(*articleModel.ArticleVersion); ok && version != nil {
-		return version.Content
+func getVersionContent(v *articleModel.ArticleVersion) string {
+	if v == nil {
+		return ""
 	}
-	// 如果是 map 类型（兼容旧逻辑）
-	if vMap, ok := v.(map[string]interface{}); ok {
-		return getString(vMap, "content")
-	}
-	return ""
+	return v.Content
 }
 
 // getVersionNumber extracts version number from ArticleVersion object
-func getVersionNumber(v interface{}) int {
-	// 尝试直接类型断言
-	if version, ok := v.(*articleModel.ArticleVersion); ok && version != nil {
-		return version.VersionNumber
+func getVersionNumber(v *articleModel.ArticleVersion) int {
+	if v == nil {
+		return 0
 	}
-	// 如果是 map 类型（兼容旧逻辑）
-	if vMap, ok := v.(map[string]interface{}); ok {
-		return getInt(vMap, "version_number")
-	}
-	return 0
+	return v.VersionNumber
 }

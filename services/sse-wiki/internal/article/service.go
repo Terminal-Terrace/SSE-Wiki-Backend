@@ -74,8 +74,8 @@ func (s *ArticleService) CreateArticle(req dto.CreateArticleRequest, userID uint
 		return nil, err
 	}
 
-	// 4. 添加创建者为owner
-	if err := s.articleRepo.AddCollaborator(art.ID, userID, "owner"); err != nil {
+	// 4. 添加创建者为admin（文章作者通过 created_by 字段标识，协作者表中使用 admin 角色）
+	if err := s.articleRepo.AddCollaborator(art.ID, userID, "admin"); err != nil {
 		return nil, err
 	}
 
@@ -119,14 +119,13 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 	}
 
 	// 判断是否需要审核
-	// - 全局admin：直接发布
-	// - owner/moderator：直接发布
+	// 权限重构：Global_Admin 对文章没有编辑特权，与普通用户相同
+	// - owner/admin/moderator：直接发布
 	// - 文章设置免审核：直接发布
-	// - 其他情况：需要审核
-	isAdmin := userRole == "admin"
-	isOwnerOrModerator := userArticleRoleStr == "owner" || userArticleRoleStr == "moderator"
+	// - 其他情况（包括 Global_Admin）：需要审核
+	isAdminOrModerator := userArticleRoleStr == "admin" || userArticleRoleStr == "moderator"
 	isReviewRequired := art.IsReviewRequired != nil && *art.IsReviewRequired
-	needReview := isReviewRequired && !isAdmin && !isOwnerOrModerator
+	needReview := isReviewRequired && !isAdminOrModerator
 
 	// TODO: 生产环境优化 - 替换为结构化日志库（如zap/zerolog），并根据环境变量控制日志级别
 	log.Printf("[CreateSubmission] articleID=%d, userID=%d, userRole=%s, articleRole=%s, isReviewRequired=%v, needReview=%v",
@@ -292,14 +291,16 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 		return nil, err
 	}
 
-	// 3. 检查权限（全局admin或文章moderator及以上）
+	// 3. 检查权限（文章 owner/admin/moderator，Global_Admin 无权审核）
+	// 权限重构：Global_Admin 对文章没有审核特权
 	// 注意：免审核模式下的自动合并不需要权限检查（提交者即审核者）
 	isReviewRequired := art.IsReviewRequired != nil && *art.IsReviewRequired
 	isAutoApprove := !isReviewRequired && submission.SubmittedBy == reviewerID
 	if !isAutoApprove {
-		hasPermission := s.articleRepo.CheckPermission(submission.ArticleID, reviewerID, userRole, "moderator")
+		// 不传 userRole，因为 Global_Admin 不应该有审核权限
+		hasPermission := s.articleRepo.CheckPermission(submission.ArticleID, reviewerID, "", "moderator")
 		if !hasPermission {
-			return nil, errors.New("permission denied")
+			return nil, errors.New("permission denied: only article owner/admin/moderator can review submissions")
 		}
 	}
 
@@ -573,6 +574,21 @@ func (s *ArticleService) GetArticle(articleID uint, userID uint, globalUserRole 
 	// 增加阅读量
 	s.articleRepo.IncrementViewCount(articleID)
 
+	// 计算 is_author 和 can_delete 字段（需求 7.2, 7.3, 7.5）
+	isAuthor := art.CreatedBy == userID
+	// can_delete: Global_Admin 或 Author/Admin 可以删除
+	canDelete := false
+	if globalUserRole == "admin" {
+		// Global_Admin 可以删除任何文章
+		canDelete = true
+	} else if isAuthor {
+		// Author 可以删除自己的文章
+		canDelete = true
+	} else if articleRole != nil && *articleRole == "admin" {
+		// Admin 协作者可以删除文章
+		canDelete = true
+	}
+
 	return map[string]interface{}{
 		"id":                 art.ID,
 		"title":              art.Title,
@@ -589,6 +605,8 @@ func (s *ArticleService) GetArticle(articleID uint, userID uint, globalUserRole 
 		"created_at":         art.CreatedAt,
 		"updated_at":         art.UpdatedAt,
 		"history":            historyEntries,
+		"is_author":          isAuthor,
+		"can_delete":         canDelete,
 	}, nil
 }
 
@@ -864,12 +882,14 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 
 // UpdateBasicInfo 更新文章基础信息（标题、标签、审核设置）
 // 这些信息不需要版本管理，直接更新
-// 权限要求：admin、owner 或 moderator
+// 权限要求：文章 owner/admin/moderator（Global_Admin 无权编辑文章基础信息）
 func (s *ArticleService) UpdateBasicInfo(articleID uint, userID uint, userRole string, req dto.UpdateArticleBasicInfoRequest) error {
-	// 检查权限（全局admin或文章moderator及以上）
-	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "moderator")
+	// 权限重构：Global_Admin 对文章没有编辑特权
+	// 只有文章的 owner/admin/moderator 可以编辑基础信息
+	// 注意：这里不传 userRole，因为 Global_Admin 不应该有编辑权限
+	hasPermission := s.articleRepo.CheckPermission(articleID, userID, "", "moderator")
 	if !hasPermission {
-		return errors.New("permission denied: requires moderator or higher privileges")
+		return errors.New("permission denied: only article owner/admin/moderator can edit basic info")
 	}
 
 	// 获取文章
@@ -947,25 +967,91 @@ func (s *ArticleService) GetCollaborators(articleID uint, userID uint, userRole 
 }
 
 // AddCollaborator 添加协作者
+// 权限规则（需求 5.4）：
+// - 只有 Author（created_by）可以添加 Admin 角色协作者
+// - Admin 可以添加 Moderator 角色协作者
+// - Moderator 不能添加协作者
+// - Global_Admin 无权添加协作者（文章属于用户个人）
 func (s *ArticleService) AddCollaborator(articleID uint, userID uint, userRole string, req dto.AddCollaboratorRequest) error {
-	// 检查权限（全局admin或文章owner）
-	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "owner")
-	if !hasPermission {
-		return errors.New("permission denied")
+	// 1. 获取文章信息，检查是否是 Author
+	art, err := s.articleRepo.GetByID(articleID)
+	if err != nil {
+		return errors.New("文章不存在")
+	}
+	isAuthor := art.CreatedBy == userID
+
+	// 2. 获取操作者在文章中的角色
+	operatorRole := s.articleRepo.GetUserRole(articleID, userID)
+	var operatorRoleStr string
+	if operatorRole != nil {
+		operatorRoleStr = *operatorRole
+	}
+
+	// 3. 权限检查
+	// 添加 admin 角色：只有 Author 可以
+	if req.Role == "admin" {
+		if !isAuthor {
+			return errors.New("permission denied: only author can add admin collaborators")
+		}
+	} else if req.Role == "moderator" {
+		// 添加 moderator 角色：Author 或 Admin 可以
+		if !isAuthor && operatorRoleStr != "admin" {
+			return errors.New("permission denied: only author or admin can add moderator collaborators")
+		}
+	} else {
+		return errors.New("invalid role: must be 'admin' or 'moderator'")
 	}
 
 	return s.articleRepo.AddCollaborator(articleID, req.UserID, req.Role)
 }
 
 // RemoveCollaborator 移除协作者
+// 权限规则（需求 5.5）：
+// - 禁止移除 Author（created_by 用户）
+// - Author 可以移除任何协作者
+// - Admin 可以移除 Moderator
+// - Moderator 不能移除协作者
+// - Global_Admin 无权移除协作者（文章属于用户个人）
 func (s *ArticleService) RemoveCollaborator(articleID uint, userID uint, userRole string, targetUserID uint) error {
-	// 检查权限（全局admin或文章owner）
-	hasPermission := s.articleRepo.CheckPermission(articleID, userID, userRole, "owner")
-	if !hasPermission {
-		return errors.New("permission denied")
+	// 1. 获取文章信息
+	art, err := s.articleRepo.GetByID(articleID)
+	if err != nil {
+		return errors.New("文章不存在")
 	}
 
-	return s.articleRepo.RemoveCollaborator(articleID, targetUserID)
+	// 2. 禁止移除 Author（created_by）
+	if art.CreatedBy == targetUserID {
+		return errors.New("cannot remove author: the article creator cannot be removed from collaborators")
+	}
+
+	// 3. 检查操作者权限
+	isAuthor := art.CreatedBy == userID
+	operatorRole := s.articleRepo.GetUserRole(articleID, userID)
+	var operatorRoleStr string
+	if operatorRole != nil {
+		operatorRoleStr = *operatorRole
+	}
+
+	// 4. 获取目标用户的角色
+	targetRole := s.articleRepo.GetUserRole(articleID, targetUserID)
+	if targetRole == nil {
+		return errors.New("user is not a collaborator")
+	}
+	targetRoleStr := *targetRole
+
+	// 5. 权限检查
+	// Author 可以移除任何协作者
+	if isAuthor {
+		return s.articleRepo.RemoveCollaborator(articleID, targetUserID)
+	}
+
+	// Admin（owner 角色）可以移除 Moderator
+	if operatorRoleStr == "admin" && targetRoleStr == "moderator" {
+		return s.articleRepo.RemoveCollaborator(articleID, targetUserID)
+	}
+
+	// 其他情况无权限
+	return errors.New("permission denied: insufficient privileges to remove this collaborator")
 }
 
 // GetVersions 获取文章版本列表
@@ -1048,4 +1134,40 @@ func containsAny(s string, substrs []string) bool {
 		}
 	}
 	return false
+}
+
+// DeleteArticle 删除文章
+// 权限要求：Global_Admin 或 Author/Admin 可删除
+// 级联删除：versions, submissions, collaborators, favorites, tags
+func (s *ArticleService) DeleteArticle(articleID uint, userID uint, userRole string) error {
+	// 1. 获取文章信息
+	art, err := s.articleRepo.GetByID(articleID)
+	if err != nil {
+		return errors.New("文章不存在")
+	}
+
+	// 2. 权限检查
+	// Global_Admin 可以删除任何文章
+	isGlobalAdmin := userRole == "admin"
+
+	// 检查是否是 Author 或 Admin
+	canDelete := isGlobalAdmin
+	if !canDelete {
+		articleRole := s.articleRepo.GetUserRole(articleID, userID)
+		if articleRole != nil {
+			// Author (created_by) 或 Admin 可以删除
+			canDelete = *articleRole == "admin"
+		}
+		// 也检查 created_by
+		if !canDelete && art.CreatedBy == userID {
+			canDelete = true
+		}
+	}
+
+	if !canDelete {
+		return errors.New("permission denied: only Global_Admin, Author or Admin can delete articles")
+	}
+
+	// 3. 执行级联删除（使用事务）
+	return s.articleRepo.DeleteArticleWithCascade(articleID)
 }

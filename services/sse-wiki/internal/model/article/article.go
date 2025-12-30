@@ -20,6 +20,8 @@ type Article struct {
 	IsReviewRequired *bool `gorm:"default:true" json:"is_review_required"`
 	// 阅读量统计
 	ViewCount uint `gorm:"default:0" json:"view_count"`
+	// 软删除时间（为空表示未删除）
+	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 // ArticleCollaborator 文章协作者表（权限独立设计）

@@ -4,10 +4,11 @@ package module
 type ModuleTreeNode struct {
 	ID          uint             `json:"id"`
 	Name        string           `json:"name"`
-	Description string    		 `json:"description"`
+	Description string           `json:"description"`
 	OwnerID     uint             `json:"owner_id"`
 	IsModerator bool             `json:"isModerator"`
 	Children    []ModuleTreeNode `json:"children"`
+	Role        string           `json:"role"` // 当前用户在该模块的角色: owner, admin, moderator, 空字符串表示无权限
 }
 
 // CreateModuleRequest 创建模块请求

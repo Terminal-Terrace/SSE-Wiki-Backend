@@ -18,7 +18,9 @@ func NewModuleService(db *gorm.DB) *ModuleService {
 }
 
 // GetModuleTree 获取模块树
-func (s *ModuleService) GetModuleTree(userID uint) ([]ModuleTreeNode, error) {
+// userID: 用户ID
+// userRole: 用户的全局角色（来自 JWT），"admin" 表示全局管理员
+func (s *ModuleService) GetModuleTree(userID uint, userRole string) ([]ModuleTreeNode, error) {
 	// 1. 获取所有模块
 	modules, err := s.moduleRepo.GetAllModules()
 	if err != nil {
@@ -28,28 +30,31 @@ func (s *ModuleService) GetModuleTree(userID uint) ([]ModuleTreeNode, error) {
 		)
 	}
 
-	// 2. 获取用户的协作者模块ID列表
-	moderatorModuleIDs, err := s.moduleRepo.GetUserModeratorModuleIDs(userID)
-	if err != nil {
-		return nil, response.NewBusinessError(
-			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("获取协作者信息失败"),
-		)
+	// 2. 检查是否是全局管理员
+	isGlobalAdmin := userRole == "admin"
+
+	// 3. 获取用户在每个模块的角色
+	roleMap := make(map[uint]string)
+	if !isGlobalAdmin {
+		roleMap, err = s.moduleRepo.GetUserModuleRoles(userID)
+		if err != nil {
+			return nil, response.NewBusinessError(
+				response.WithErrorCode(response.Fail),
+				response.WithErrorMessage("获取协作者信息失败"),
+			)
+		}
 	}
 
-	// 将ID列表转为map便于查询
-	moderatorMap := make(map[uint]bool)
-	for _, id := range moderatorModuleIDs {
-		moderatorMap[id] = true
-	}
-
-	// 3. 构建树形结构
-	tree := s.buildTree(modules, nil, moderatorMap)
+	// 4. 构建树形结构
+	tree := s.buildTreeWithRoles(modules, nil, roleMap, isGlobalAdmin, "")
 	return tree, nil
 }
 
-// buildTree 递归构建树形结构
-func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, moderatorMap map[uint]bool) []ModuleTreeNode {
+// buildTreeWithRoles 递归构建树形结构（支持权限继承和角色计算）
+// roleMap: 用户在每个模块的直接角色 map[moduleID]role
+// isGlobalAdmin: 如果为 true，所有模块的角色都是 "admin"
+// parentRole: 父模块的角色，用于权限继承
+func (s *ModuleService) buildTreeWithRoles(modules []moduleModel.Module, parentID *uint, roleMap map[uint]string, isGlobalAdmin bool, parentRole string) []ModuleTreeNode {
 	var tree []ModuleTreeNode
 
 	for _, module := range modules {
@@ -57,13 +62,30 @@ func (s *ModuleService) buildTree(modules []moduleModel.Module, parentID *uint, 
 		if (parentID == nil && module.ParentID == nil) ||
 			(parentID != nil && module.ParentID != nil && *parentID == *module.ParentID) {
 
+			// 计算用户在该模块的角色
+			var role string
+			if isGlobalAdmin {
+				// 全局管理员对所有模块都有 admin 权限
+				role = "admin"
+			} else if directRole, ok := roleMap[module.ID]; ok {
+				// 用户在该模块有直接角色
+				role = directRole
+			} else if parentRole != "" {
+				// 从父模块继承角色
+				role = parentRole
+			}
+
+			// isModerator 为 true 表示用户有任何权限
+			isModerator := role != ""
+
 			node := ModuleTreeNode{
 				ID:          module.ID,
 				Name:        module.ModuleName,
 				Description: module.Description,
 				OwnerID:     module.OwnerID,
-				IsModerator: moderatorMap[module.ID],
-				Children:    s.buildTree(modules, &module.ID, moderatorMap),
+				IsModerator: isModerator,
+				Role:        role,
+				Children:    s.buildTreeWithRoles(modules, &module.ID, roleMap, isGlobalAdmin, role),
 			}
 			tree = append(tree, node)
 		}
@@ -152,10 +174,10 @@ func (s *ModuleService) CreateModule(req CreateModuleRequest, userID uint, userR
 
 	// 创建模块
 	module := &moduleModel.Module{
-		ModuleName: req.Name,
+		ModuleName:  req.Name,
 		Description: req.Description,
-		ParentID:   req.ParentID,
-		OwnerID:    userID,
+		ParentID:    req.ParentID,
+		OwnerID:     userID,
 	}
 
 	if err := s.moduleRepo.CreateModule(module); err != nil {
@@ -163,6 +185,11 @@ func (s *ModuleService) CreateModule(req CreateModuleRequest, userID uint, userR
 			response.WithErrorCode(response.Fail),
 			response.WithErrorMessage("创建模块失败"),
 		)
+	}
+
+	// 权限继承落库：如果有父模块，复制父模块的所有协作者到子模块
+	if req.ParentID != nil {
+		_ = s.moduleRepo.CopyParentModeratorsToChild(*req.ParentID, module.ID)
 	}
 
 	return module, nil
@@ -326,35 +353,24 @@ func (s *ModuleService) DeleteModule(id uint, userID uint, userRole string) (int
 }
 
 // CheckModulePermission 检查用户是否对指定模块有管理权限
+// 支持权限继承：如果用户是祖先模块的 owner/moderator，也有权限
 func (s *ModuleService) CheckModulePermission(userID, moduleID uint, userRole string) (bool, error) {
 	// 1. 系统管理员有所有权限
 	if userRole == "admin" {
 		return true, nil
 	}
 
-	// 2. 检查是否是模块所有者
-	module, err := s.moduleRepo.GetModuleByID(moduleID)
+	// 2. 使用支持继承的权限检查
+	role, _, err := s.moduleRepo.GetUserPermissionWithInheritance(moduleID, userID)
 	if err != nil {
 		return false, response.NewBusinessError(
 			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("获取模块信息失败"),
+			response.WithErrorMessage("检查权限失败"),
 		)
 	}
 
-	if module.OwnerID == userID {
-		return true, nil
-	}
-
-	// 3. 检查是否是协作者
-	isModerator, err := s.moduleRepo.IsModerator(moduleID, userID)
-	if err != nil {
-		return false, response.NewBusinessError(
-			response.WithErrorCode(response.Fail),
-			response.WithErrorMessage("检查协作者权限失败"),
-		)
-	}
-
-	return isModerator, nil
+	// 有任何角色（owner/admin/moderator）都有权限
+	return role != "", nil
 }
 
 // GetModerators 获取协作者列表
@@ -426,7 +442,7 @@ func (s *ModuleService) AddModerator(moduleID uint, req AddModeratorRequest, use
 		)
 	}
 
-	// 添加协作者
+	// 添加协作者到当前模块
 	moderator := &moduleModel.ModuleModerator{
 		ModuleID: moduleID,
 		UserID:   req.UserID,
@@ -439,6 +455,9 @@ func (s *ModuleService) AddModerator(moduleID uint, req AddModeratorRequest, use
 			response.WithErrorMessage("添加协作者失败"),
 		)
 	}
+
+	// 权限继承落库：递归添加协作者到所有子模块
+	_ = s.moduleRepo.AddModeratorToDescendants(moduleID, req.UserID, req.Role)
 
 	return nil
 }
@@ -460,7 +479,15 @@ func (s *ModuleService) RemoveModerator(moduleID, targetUserID uint, userID uint
 		)
 	}
 
-	// 权限检查：只有所有者或系统管理员可以移除协作者
+	// 不能移除 Owner
+	if targetUserID == module.OwnerID {
+		return response.NewBusinessError(
+			response.WithErrorCode(response.Forbidden),
+			response.WithErrorMessage("不能移除模块所有者"),
+		)
+	}
+
+	// 权限检查：只有模块所有者或系统管理员可以移除协作者
 	if userRole != "admin" && module.OwnerID != userID {
 		return response.NewBusinessError(
 			response.WithErrorCode(response.Forbidden),
@@ -475,6 +502,9 @@ func (s *ModuleService) RemoveModerator(moduleID, targetUserID uint, userID uint
 			response.WithErrorMessage("移除协作者失败"),
 		)
 	}
+
+	// 权限继承落库：递归从所有子模块移除协作者
+	_ = s.moduleRepo.RemoveModeratorFromDescendants(moduleID, targetUserID)
 
 	return nil
 }

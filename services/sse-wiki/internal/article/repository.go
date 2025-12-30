@@ -91,10 +91,10 @@ func (r *ArticleRepository) CheckPermission(articleID uint, userID uint, userRol
 		return false
 	}
 
-	// 3. 角色权限层级：owner > moderator
+	// 3. 角色权限层级：admin > moderator
 	roleLevel := map[string]int{
 		"moderator": 1,
-		"owner":     2,
+		"admin":     2,
 	}
 
 	return roleLevel[collaborator.Role] >= roleLevel[requiredRole]
@@ -365,4 +365,58 @@ func (r *TagRepository) GetArticleTags(articleID uint) ([]article.Tag, error) {
 		Where("article_tags.article_id = ?", articleID).
 		Find(&tags).Error
 	return tags, err
+}
+
+
+// DeleteArticleWithCascade 级联删除文章及其所有关联数据
+// 删除顺序：favorites -> article_tags -> article_collaborators -> version_conflicts -> review_submissions -> article_versions -> article
+func (r *ArticleRepository) DeleteArticleWithCascade(articleID uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. 删除收藏记录
+		if err := tx.Where("article_id = ?", articleID).Delete(&article.Favorite{}).Error; err != nil {
+			return err
+		}
+
+		// 2. 删除文章标签关联
+		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleTag{}).Error; err != nil {
+			return err
+		}
+
+		// 3. 删除协作者
+		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleCollaborator{}).Error; err != nil {
+			return err
+		}
+
+		// 4. 获取所有 submission IDs 用于删除冲突记录
+		var submissionIDs []uint
+		if err := tx.Model(&article.ReviewSubmission{}).
+			Where("article_id = ?", articleID).
+			Pluck("id", &submissionIDs).Error; err != nil {
+			return err
+		}
+
+		// 5. 删除版本冲突记录
+		if len(submissionIDs) > 0 {
+			if err := tx.Where("submission_id IN ?", submissionIDs).Delete(&article.VersionConflict{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 6. 删除审核提交记录
+		if err := tx.Where("article_id = ?", articleID).Delete(&article.ReviewSubmission{}).Error; err != nil {
+			return err
+		}
+
+		// 7. 删除所有版本
+		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleVersion{}).Error; err != nil {
+			return err
+		}
+
+		// 8. 删除文章本身
+		if err := tx.Delete(&article.Article{}, articleID).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

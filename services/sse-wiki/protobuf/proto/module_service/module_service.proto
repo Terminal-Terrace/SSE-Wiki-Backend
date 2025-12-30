@@ -22,6 +22,7 @@ message ModuleTreeNode {
   uint32 owner_id = 4;
   bool is_moderator = 5;
   repeated ModuleTreeNode children = 6;
+  string role = 7;  // 当前用户在该模块的角色: owner, admin, moderator, 空字符串表示无权限
 }
 
 message Module {
@@ -57,7 +58,6 @@ message LockInfo {
 // ============================================================================
 
 message GetModuleTreeRequest {
-  uint32 user_id = 1;  // 0 表示未登录
 }
 
 message GetModuleTreeResponse {
@@ -84,8 +84,7 @@ message CreateModuleRequest {
   string name = 1;
   string description = 2;
   uint32 parent_id = 3;  // 0 表示顶级模块
-  uint32 user_id = 4;
-  string user_role = 5;
+  
 }
 
 message CreateModuleResponse {
@@ -97,16 +96,12 @@ message UpdateModuleRequest {
   string name = 2;
   string description = 3;
   uint32 parent_id = 4;  // 0 表示顶级模块
-  uint32 user_id = 5;
-  string user_role = 6;
 }
 
 message UpdateModuleResponse {}
 
 message DeleteModuleRequest {
   uint32 id = 1;
-  uint32 user_id = 2;
-  string user_role = 3;
 }
 
 message DeleteModuleResponse {
@@ -115,8 +110,6 @@ message DeleteModuleResponse {
 
 message GetModeratorsRequest {
   uint32 module_id = 1;
-  uint32 user_id = 2;
-  string user_role = 3;
 }
 
 message GetModeratorsResponse {
@@ -127,8 +120,6 @@ message AddModeratorRequest {
   uint32 module_id = 1;
   uint32 target_user_id = 2;
   string role = 3;  // admin, moderator
-  uint32 user_id = 4;
-  string user_role = 5;
 }
 
 message AddModeratorResponse {}
@@ -136,8 +127,6 @@ message AddModeratorResponse {}
 message RemoveModeratorRequest {
   uint32 module_id = 1;
   uint32 target_user_id = 2;
-  uint32 user_id = 3;
-  string user_role = 4;
 }
 
 message RemoveModeratorResponse {}
@@ -145,7 +134,6 @@ message RemoveModeratorResponse {}
 message HandleLockRequest {
   uint32 module_id = 1;
   string action = 2;  // acquire, release
-  uint32 user_id = 3;
 }
 
 message HandleLockResponse {

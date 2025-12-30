@@ -32,6 +32,7 @@ const (
 	ArticleService_GetCollaborators_FullMethodName         = "/article_service.ArticleService/GetCollaborators"
 	ArticleService_AddCollaborator_FullMethodName          = "/article_service.ArticleService/AddCollaborator"
 	ArticleService_RemoveCollaborator_FullMethodName       = "/article_service.ArticleService/RemoveCollaborator"
+	ArticleService_DeleteArticle_FullMethodName            = "/article_service.ArticleService/DeleteArticle"
 )
 
 // ArticleServiceClient is the client API for ArticleService service.
@@ -54,6 +55,8 @@ type ArticleServiceClient interface {
 	GetCollaborators(ctx context.Context, in *GetCollaboratorsRequest, opts ...grpc.CallOption) (*GetCollaboratorsResponse, error)
 	AddCollaborator(ctx context.Context, in *AddCollaboratorRequest, opts ...grpc.CallOption) (*AddCollaboratorResponse, error)
 	RemoveCollaborator(ctx context.Context, in *RemoveCollaboratorRequest, opts ...grpc.CallOption) (*RemoveCollaboratorResponse, error)
+	// 删除文章
+	DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...grpc.CallOption) (*DeleteArticleResponse, error)
 }
 
 type articleServiceClient struct {
@@ -194,6 +197,16 @@ func (c *articleServiceClient) RemoveCollaborator(ctx context.Context, in *Remov
 	return out, nil
 }
 
+func (c *articleServiceClient) DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...grpc.CallOption) (*DeleteArticleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteArticleResponse)
+	err := c.cc.Invoke(ctx, ArticleService_DeleteArticle_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ArticleServiceServer is the server API for ArticleService service.
 // All implementations must embed UnimplementedArticleServiceServer
 // for forward compatibility.
@@ -214,6 +227,8 @@ type ArticleServiceServer interface {
 	GetCollaborators(context.Context, *GetCollaboratorsRequest) (*GetCollaboratorsResponse, error)
 	AddCollaborator(context.Context, *AddCollaboratorRequest) (*AddCollaboratorResponse, error)
 	RemoveCollaborator(context.Context, *RemoveCollaboratorRequest) (*RemoveCollaboratorResponse, error)
+	// 删除文章
+	DeleteArticle(context.Context, *DeleteArticleRequest) (*DeleteArticleResponse, error)
 	mustEmbedUnimplementedArticleServiceServer()
 }
 
@@ -262,6 +277,9 @@ func (UnimplementedArticleServiceServer) AddCollaborator(context.Context, *AddCo
 }
 func (UnimplementedArticleServiceServer) RemoveCollaborator(context.Context, *RemoveCollaboratorRequest) (*RemoveCollaboratorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveCollaborator not implemented")
+}
+func (UnimplementedArticleServiceServer) DeleteArticle(context.Context, *DeleteArticleRequest) (*DeleteArticleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteArticle not implemented")
 }
 func (UnimplementedArticleServiceServer) mustEmbedUnimplementedArticleServiceServer() {}
 func (UnimplementedArticleServiceServer) testEmbeddedByValue()                        {}
@@ -518,6 +536,24 @@ func _ArticleService_RemoveCollaborator_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ArticleService_DeleteArticle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteArticleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticleServiceServer).DeleteArticle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ArticleService_DeleteArticle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticleServiceServer).DeleteArticle(ctx, req.(*DeleteArticleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ArticleService_ServiceDesc is the grpc.ServiceDesc for ArticleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -576,6 +612,10 @@ var ArticleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RemoveCollaborator",
 			Handler:    _ArticleService_RemoveCollaborator_Handler,
+		},
+		{
+			MethodName: "DeleteArticle",
+			Handler:    _ArticleService_DeleteArticle_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

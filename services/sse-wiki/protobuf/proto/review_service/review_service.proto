@@ -105,8 +105,6 @@ message GetReviewsResponse {
 
 message GetReviewDetailRequest {
   uint32 submission_id = 1;
-  uint32 user_id = 2;
-  string user_role = 3;
 }
 
 message ReviewDetail {
@@ -125,8 +123,7 @@ message ReviewActionRequest {
   string action = 2;  // approve, reject
   string notes = 3;
   string merged_content = 4;  // 仅当手动解决冲突时需要
-  uint32 reviewer_id = 5;
-  string user_role = 6;
+  // reviewer_id 和 user_role 已移除，通过 JWT metadata 传递
 }
 
 message ReviewActionResponse {
