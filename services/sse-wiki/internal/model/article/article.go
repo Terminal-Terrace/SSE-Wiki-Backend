@@ -3,6 +3,8 @@ package article
 
 import (
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // Article 文章基础信息表
@@ -21,7 +23,7 @@ type Article struct {
 	// 阅读量统计
 	ViewCount uint `gorm:"default:0" json:"view_count"`
 	// 软删除时间（为空表示未删除）
-	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 // ArticleCollaborator 文章协作者表（权限独立设计）

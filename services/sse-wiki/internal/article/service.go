@@ -318,9 +318,13 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			return nil, err
 		}
 
-		ourContent, err := s.versionRepo.GetContent(*art.CurrentVersionID)
-		if err != nil {
-			return nil, err
+		// 获取当前版本内容（如果存在）
+		ourContent := ""
+		if art.CurrentVersionID != nil {
+			ourContent, err = s.versionRepo.GetContent(*art.CurrentVersionID)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// 调用3路合并算法
@@ -336,19 +340,24 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			submission.MergedAgainstVersionID = art.CurrentVersionID
 			s.submissionRepo.Update(submission)
 
-			// 记录冲突
-			conflict := &article.VersionConflict{
-				SubmissionID:          submission.ID,
-				ConflictWithVersionID: *art.CurrentVersionID,
-				Status:                "detected",
-				ConflictDetails:       "",
-				CreatedAt:             time.Now(),
+			// 记录冲突（只有在存在当前版本时才记录）
+			if art.CurrentVersionID != nil {
+				conflict := &article.VersionConflict{
+					SubmissionID:          submission.ID,
+					ConflictWithVersionID: *art.CurrentVersionID,
+					Status:                "detected",
+					ConflictDetails:       "",
+					CreatedAt:             time.Now(),
+				}
+				s.submissionRepo.CreateConflict(conflict)
 			}
-			s.submissionRepo.CreateConflict(conflict)
 
 			// 获取版本号信息
 			baseVersionNumber, _ := s.versionRepo.GetVersionNumber(submission.BaseVersionID)
-			currentVersionNumber, _ := s.versionRepo.GetVersionNumber(*art.CurrentVersionID)
+			currentVersionNumber := 0
+			if art.CurrentVersionID != nil {
+				currentVersionNumber, _ = s.versionRepo.GetVersionNumber(*art.CurrentVersionID)
+			}
 
 			// 返回冲突错误
 			return nil, &MergeConflictError{
