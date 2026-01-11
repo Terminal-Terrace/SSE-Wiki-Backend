@@ -44,11 +44,4 @@ config.prod.yaml
 # 测试覆盖率
 coverage.out
 *.cover
-
-# Swagger 生成的文档
-services/*/docs/docs.go
-services/*/docs/swagger.json
-services/*/docs/swagger.yaml
-
-# 文件存储
-services/sse-wiki/uploads/*
+coverage.html

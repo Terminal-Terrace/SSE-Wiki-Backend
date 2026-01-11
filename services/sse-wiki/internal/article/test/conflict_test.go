@@ -10,6 +10,7 @@ import (
 	"terminal-terrace/sse-wiki/internal/model/article"
 	"terminal-terrace/sse-wiki/internal/testutils"
 )
+
 func TestConcurrentSubmissionChainConflicts_Integration(t *testing.T) {
 	service, db := setupArticleService(t)
 
@@ -249,7 +250,8 @@ func TestConcurrentSubmissionChainConflicts_Integration(t *testing.T) {
 // TestAutomaticMergeSuccess_Integration 场景2: 无冲突自动合并（测试合并算法）
 // 描述: 用户B基于用户A已发布的版本2提交，只有B修改了（单方修改），应该能自动合并
 // 注意: 当前ThreeWayMerge算法是字符串级比较，无法识别"修改不同章节自动合并"
-//       此测试验证"单方修改自动合并"场景，匹配当前算法行为
+//
+//	此测试验证"单方修改自动合并"场景，匹配当前算法行为
 func TestAutomaticMergeSuccess_Integration(t *testing.T) {
 	service, db := setupArticleService(t)
 
@@ -885,16 +887,14 @@ func TestRealTimeConflictDetection_Integration(t *testing.T) {
 		t.Fatalf("Expected conflict_data")
 	}
 
-	if conflictData["base_content"] != BaseContentSimple {
-		t.Errorf("Expected base_content to match base version")
-	}
-	if conflictData["our_content"] != UserAContentSimple {
-		t.Errorf("Expected our_content to be current version (user A's content)")
-	}
-	if conflictData["their_content"] != UserBContentSimple {
-		t.Errorf("Expected their_content to match proposed version (user B's content)")
-	}
+	// 验证冲突元数据（不再包含 content 字段，内容从版本对象获取）
 	if conflictData["has_conflict"] != true {
 		t.Errorf("Expected has_conflict=true in conflict_data")
+	}
+	if conflictData["base_version_number"] == nil {
+		t.Errorf("Expected base_version_number in conflict_data")
+	}
+	if conflictData["current_version_number"] == nil {
+		t.Errorf("Expected current_version_number in conflict_data")
 	}
 }
