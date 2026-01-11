@@ -368,21 +368,22 @@ func (r *TagRepository) GetArticleTags(articleID uint) ([]article.Tag, error) {
 }
 
 
-// DeleteArticleWithCascade 级联删除文章及其所有关联数据
+// DeleteArticleWithCascade 级联删除文章及其所有关联数据（软删除）
 // 删除顺序：favorites -> article_tags -> article_collaborators -> version_conflicts -> review_submissions -> article_versions -> article
+// 注意：Article 使用软删除（设置 DeletedAt），其他关联表使用硬删除
 func (r *ArticleRepository) DeleteArticleWithCascade(articleID uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		// 1. 删除收藏记录
+		// 1. 删除收藏记录（硬删除）
 		if err := tx.Where("article_id = ?", articleID).Delete(&article.Favorite{}).Error; err != nil {
 			return err
 		}
 
-		// 2. 删除文章标签关联
+		// 2. 删除文章标签关联（硬删除）
 		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleTag{}).Error; err != nil {
 			return err
 		}
 
-		// 3. 删除协作者
+		// 3. 删除协作者（硬删除）
 		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleCollaborator{}).Error; err != nil {
 			return err
 		}
@@ -395,24 +396,25 @@ func (r *ArticleRepository) DeleteArticleWithCascade(articleID uint) error {
 			return err
 		}
 
-		// 5. 删除版本冲突记录
+		// 5. 删除版本冲突记录（硬删除）
 		if len(submissionIDs) > 0 {
 			if err := tx.Where("submission_id IN ?", submissionIDs).Delete(&article.VersionConflict{}).Error; err != nil {
 				return err
 			}
 		}
 
-		// 6. 删除审核提交记录
+		// 6. 删除审核提交记录（硬删除）
 		if err := tx.Where("article_id = ?", articleID).Delete(&article.ReviewSubmission{}).Error; err != nil {
 			return err
 		}
 
-		// 7. 删除所有版本
+		// 7. 删除所有版本（硬删除）
 		if err := tx.Where("article_id = ?", articleID).Delete(&article.ArticleVersion{}).Error; err != nil {
 			return err
 		}
 
-		// 8. 删除文章本身
+		// 8. 软删除文章本身（GORM 会自动检测 DeletedAt 字段并执行软删除）
+		// 使用 Delete 方法，GORM 会自动执行 UPDATE articles SET deleted_at = NOW() WHERE id = ?
 		if err := tx.Delete(&article.Article{}, articleID).Error; err != nil {
 			return err
 		}

@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const timeFormat = "2006-01-02 15:04:05"
+
 // ReviewServiceImpl implements the ReviewService gRPC interface
 type ReviewServiceImpl struct {
 	pb.UnimplementedReviewServiceServer
@@ -80,7 +82,7 @@ func (s *ReviewServiceImpl) GetReviewDetail(ctx context.Context, req *pb.GetRevi
 	}
 	// 处理 created_at（可能是 time.Time 类型）
 	if createdAt, ok := detail["created_at"].(time.Time); ok {
-		pbDetail.Submission.CreatedAt = createdAt.Format("2006-01-02 15:04:05")
+		pbDetail.Submission.CreatedAt = createdAt.Format(timeFormat)
 	}
 	// 处理 reviewed_by（可能是 *uint 类型）
 	if reviewedBy, ok := detail["reviewed_by"].(*uint); ok && reviewedBy != nil {
@@ -97,22 +99,52 @@ func (s *ReviewServiceImpl) GetReviewDetail(ctx context.Context, req *pb.GetRevi
 		pbDetail.BaseVersion = convertVersionModelToReviewPb(ver)
 	}
 
-	// Convert current_version（服务层返回的是 current_version，不是 article）
-	// 注意：proto 定义中是 article 字段，但服务层返回的是 current_version
-	// 我们需要从 article_id 获取文章信息来填充 Article 字段
+	// Convert current_version（服务层返回的是 current_version）
+	if ver, ok := detail["current_version"].(*articleModel.ArticleVersion); ok && ver != nil {
+		pbDetail.CurrentVersion = convertVersionModelToReviewPb(ver)
+	}
+
+	// Convert conflict_data
+	if conflictData, ok := detail["conflict_data"].(map[string]interface{}); ok && conflictData != nil {
+		pbDetail.ConflictData = &pb.ConflictData{
+			HasConflict:          getBool(conflictData, "has_conflict"),
+			BaseVersionNumber:    int32(getInt(conflictData, "base_version_number")),
+			CurrentVersionNumber: int32(getInt(conflictData, "current_version_number")),
+			SubmitterName:        getString(conflictData, "submitter_name"),
+		}
+	}
+
+	// Convert Article（完善字段映射）
 	if articleID := getUint(detail, "article_id"); articleID > 0 {
 		// 获取文章基本信息
 		articleRepo := article.NewArticleRepository(database.PostgresDB)
 		if art, err := articleRepo.GetByID(uint(articleID)); err == nil {
-			pbDetail.Article = &pb.Article{
-				Id:       uint32(art.ID),
-				Title:    art.Title,
-				ModuleId: uint32(art.ModuleID),
+			pbArticle := &pb.Article{
+				Id:               uint32(art.ID),
+				Title:            art.Title,
+				ModuleId:         uint32(art.ModuleID),
+				CreatedBy:        uint32(art.CreatedBy),
+				IsReviewRequired: art.IsReviewRequired != nil && *art.IsReviewRequired,
+				ViewCount:        uint32(art.ViewCount),
+			}
+			// 设置时间字段
+			pbArticle.CreatedAt = art.CreatedAt.Format(timeFormat)
+			pbArticle.UpdatedAt = art.UpdatedAt.Format(timeFormat)
+			// 设置 current_version_id
+			if art.CurrentVersionID != nil {
+				pbArticle.CurrentVersionId = uint32(*art.CurrentVersionID)
 			}
 			// 服务层已经计算了 current_user_role，直接使用
 			if currentUserRole := getString(detail, "current_user_role"); currentUserRole != "" {
-				pbDetail.Article.CurrentUserRole = currentUserRole
+				pbArticle.CurrentUserRole = currentUserRole
 			}
+			// 从 current_version 获取 content, commit_message, version_number
+			if currentVer, ok := detail["current_version"].(*articleModel.ArticleVersion); ok && currentVer != nil {
+				pbArticle.Content = currentVer.Content
+				pbArticle.CommitMessage = currentVer.CommitMessage
+				pbArticle.VersionNumber = int32(currentVer.VersionNumber)
+			}
+			pbDetail.Article = pbArticle
 		}
 	}
 
@@ -143,9 +175,6 @@ func (s *ReviewServiceImpl) ReviewAction(ctx context.Context, req *pb.ReviewActi
 			return &pb.ReviewActionResponse{
 				Message: "检测到冲突",
 				ConflictData: &pb.ConflictData{
-					BaseContent:          getString(cd, "base_content"),
-					TheirContent:         getString(cd, "their_content"),
-					OurContent:           getString(cd, "our_content"),
 					HasConflict:          getBool(cd, "has_conflict"),
 					BaseVersionNumber:    int32(getInt(cd, "base_version_number")),
 					CurrentVersionNumber: int32(getInt(cd, "current_version_number")),
@@ -184,7 +213,7 @@ func convertVersionModelToReviewPb(v *articleModel.ArticleVersion) *pb.Version {
 		CommitMessage: v.CommitMessage,
 		AuthorId:      uint32(v.AuthorID),
 		Status:        v.Status,
-		CreatedAt:     v.CreatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:     v.CreatedAt.Format(timeFormat),
 	}
 }
 
@@ -201,13 +230,13 @@ func convertReviewSubmissionModel(s *articleModel.ReviewSubmission) *pb.Submissi
 		SubmittedBy:       uint32(s.SubmittedBy),
 		Status:            s.Status,
 		HasConflict:       s.HasConflict,
-		CreatedAt:         s.CreatedAt.Format("2006-01-02 15:04:05"),
+		CreatedAt:         s.CreatedAt.Format(timeFormat),
 	}
 	if s.ReviewedBy != nil {
 		pbSub.ReviewedBy = uint32(*s.ReviewedBy)
 	}
 	if s.ReviewedAt != nil {
-		pbSub.ReviewedAt = s.ReviewedAt.Format("2006-01-02 15:04:05")
+		pbSub.ReviewedAt = s.ReviewedAt.Format(timeFormat)
 	}
 	if s.AIScore != nil {
 		pbSub.AiScore = int32(*s.AIScore)

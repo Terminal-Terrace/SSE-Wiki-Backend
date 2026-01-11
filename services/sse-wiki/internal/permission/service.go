@@ -71,14 +71,24 @@ func CompareRoles(roleA, roleB string) int {
 }
 
 // HasRequiredRole 检查实际角色是否满足所需角色的权限要求
-// actualRole: 用户的实际角色
+// actualRole: 用户的实际角色（应为有效的角色名称：owner/admin/moderator/user）
 // requiredRole: 操作所需的最低角色
+//
+// 注意：
+// - Unknown/empty 角色会被拒绝（返回 false），因为权限等级为 0
+// - 未登录用户应在 BFF controller 层拦截，不应传递到 permission 层
+// - 此函数假设输入是有效的角色名称，不进行自动标准化
 func HasRequiredRole(actualRole, requiredRole string) bool {
 	return GetRoleLevel(actualRole) >= GetRoleLevel(requiredRole)
 }
 
 // NormalizeRole 标准化角色名称
 // 将 "owner" 和 "author" 统一处理，其他角色保持不变
+//
+// 注意：
+// - 此函数用于显示/日志/标准化用途，不是权限检查
+// - Unknown/empty 角色会被标准化为 "user"，但这不影响权限检查
+// - 权限检查应使用 HasRequiredRole，它不会自动标准化 unknown 角色
 func NormalizeRole(role string) string {
 	switch role {
 	case "owner", "author":
@@ -233,11 +243,17 @@ func (s *PermissionService) CheckModulePermissionWithInheritance(moduleID uint, 
 // 检查顺序：
 // 1. articles.created_by == userID → 返回 author 级别
 // 2. article_collaborators 表 → 返回对应角色
-// 3. Global_Admin 特殊处理：仅删除权限，其他与 user 相同
+// 3. Global_Admin 特殊处理：可以提交内容修改（与 user 相同，需要审核），可以删除文章
+//    但不能直接发布、编辑基础信息或审核他人的提交
 // 4. 无权限 → 返回 user 级别
 //
-// 注意：Global_Admin 对文章只有删除权限，不能编辑内容或基础信息
-// 因此 GetEffectiveArticleRole 不会因为 Global_Admin 返回高权限角色
+// 注意：Global_Admin 对文章的权限：
+// - ✅ 可以提交内容修改（与普通用户相同，需要审核）
+// - ✅ 可以删除文章（在 CanDeleteArticle 中单独处理）
+// - ❌ 不能直接发布（跳过审核）
+// - ❌ 不能编辑基础信息（标题、标签、审核开关）
+// - ❌ 不能审核他人的提交
+// 因此 GetEffectiveArticleRole 返回 "user" 级别，允许提交修改但不允许其他高权限操作
 func (s *PermissionService) GetEffectiveArticleRole(articleID uint, userID uint, userRole string) (string, PermissionSource) {
 	// 1. 检查是否是文章作者
 	var createdBy uint
@@ -261,8 +277,11 @@ func (s *PermissionService) GetEffectiveArticleRole(articleID uint, userID uint,
 		return role, PermissionSourceDirect
 	}
 
-	// 3. Global_Admin 对文章没有编辑权限，只有删除权限
-	// 这里返回 user 级别，删除权限在 CanDeleteArticle 中单独处理
+	// 3. Global_Admin 对文章的权限：
+	// - 可以提交内容修改（与 user 相同，需要审核）
+	// - 可以删除文章（在 CanDeleteArticle 中单独处理）
+	// - 不能直接发布、编辑基础信息或审核他人的提交
+	// 因此返回 "user" 级别，允许提交修改但不允许其他高权限操作
 
 	// 4. 无权限，返回普通用户
 	return "user", PermissionSourceNone

@@ -277,9 +277,6 @@ func (s *ArticleServiceImpl) CreateSubmission(ctx context.Context, req *pb.Creat
 				NeedReview: false,
 				Message:    "合并冲突",
 				ConflictData: &pb.ConflictData{
-					BaseContent:          getString(cd, "base_content"),
-					TheirContent:         getString(cd, "their_content"),
-					OurContent:           getString(cd, "our_content"),
 					HasConflict:          getBool(cd, "has_conflict"),
 					BaseVersionNumber:    int32(getInt(cd, "base_version_number")),
 					CurrentVersionNumber: int32(getInt(cd, "current_version_number")),

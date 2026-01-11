@@ -169,9 +169,6 @@ func (s *ArticleService) CreateSubmission(articleID uint, req dto.SubmissionRequ
 			return nil, nil, &MergeConflictError{
 				Message: "Merge conflict detected",
 				ConflictData: map[string]interface{}{
-					"base_content":           baseContent,
-					"their_content":          theirContent,
-					"our_content":            ourContent,
 					"has_conflict":           true,
 					"base_version_number":    baseVersionNumber,
 					"current_version_number": currentVersionNumber,
@@ -318,9 +315,13 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			return nil, err
 		}
 
-		ourContent, err := s.versionRepo.GetContent(*art.CurrentVersionID)
-		if err != nil {
-			return nil, err
+		// 获取当前版本内容（如果存在）
+		ourContent := ""
+		if art.CurrentVersionID != nil {
+			ourContent, err = s.versionRepo.GetContent(*art.CurrentVersionID)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// 调用3路合并算法
@@ -336,27 +337,29 @@ func (s *ArticleService) ReviewSubmission(submissionID uint, reviewerID uint, us
 			submission.MergedAgainstVersionID = art.CurrentVersionID
 			s.submissionRepo.Update(submission)
 
-			// 记录冲突
-			conflict := &article.VersionConflict{
-				SubmissionID:          submission.ID,
-				ConflictWithVersionID: *art.CurrentVersionID,
-				Status:                "detected",
-				ConflictDetails:       "",
-				CreatedAt:             time.Now(),
+			// 记录冲突（只有在存在当前版本时才记录）
+			if art.CurrentVersionID != nil {
+				conflict := &article.VersionConflict{
+					SubmissionID:          submission.ID,
+					ConflictWithVersionID: *art.CurrentVersionID,
+					Status:                "detected",
+					ConflictDetails:       "",
+					CreatedAt:             time.Now(),
+				}
+				s.submissionRepo.CreateConflict(conflict)
 			}
-			s.submissionRepo.CreateConflict(conflict)
 
 			// 获取版本号信息
 			baseVersionNumber, _ := s.versionRepo.GetVersionNumber(submission.BaseVersionID)
-			currentVersionNumber, _ := s.versionRepo.GetVersionNumber(*art.CurrentVersionID)
+			currentVersionNumber := 0
+			if art.CurrentVersionID != nil {
+				currentVersionNumber, _ = s.versionRepo.GetVersionNumber(*art.CurrentVersionID)
+			}
 
 			// 返回冲突错误
 			return nil, &MergeConflictError{
 				Message: "Merge conflict detected",
 				ConflictData: map[string]interface{}{
-					"base_content":           baseContent,
-					"their_content":          theirContent,
-					"our_content":            ourContent,
 					"has_conflict":           true,
 					"base_version_number":    baseVersionNumber,
 					"current_version_number": currentVersionNumber,
@@ -766,11 +769,13 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 		currentVersion, err = s.versionRepo.GetByID(*art.CurrentVersionID)
 		if err != nil {
 			// TODO: 生产环境优化 - 移除或使用结构化日志
-			log.Printf("[GetReviewDetail] 警告: 获取current_version失败: versionID=%d, error=%v",
+			log.Printf("[GetReviewDetail] 获取current_version失败: versionID=%d, error=%v",
 				*art.CurrentVersionID, err)
-			// current_version 不存在时不报错，返回 nil
-			currentVersion = nil
+			return nil, fmt.Errorf("当前版本(ID=%d)不存在，数据可能已损坏。建议联系管理员检查数据库",
+				*art.CurrentVersionID)
 		}
+	} else {
+		return nil, errors.New("文章没有当前版本，数据可能已损坏")
 	}
 
 	// 5. 实时检测冲突（每次获取审核详情时重新执行三路合并）
@@ -835,23 +840,8 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 		"current_user_role":   effectiveRole, // 返回用户角色，前端用于权限判断
 	}
 
-	// 7. 如果有冲突，返回三方原始内容（不生成冲突标记，由前端处理）
+	// 7. 如果有冲突，返回冲突检测元数据（不包含内容，内容从版本对象获取）
 	if realTimeHasConflict {
-		// 获取三方内容用于展示冲突
-		var baseContent, theirContent, ourContent string
-
-		if baseVersion != nil {
-			baseContent = baseVersion.Content
-		}
-
-		if proposedVersion != nil {
-			theirContent = proposedVersion.Content
-		}
-
-		if currentVersion != nil {
-			ourContent = currentVersion.Content
-		}
-
 		// 获取版本号
 		var baseVersionNumber, currentVersionNumber int
 		if baseVersion != nil {
@@ -861,13 +851,12 @@ func (s *ArticleService) GetReviewDetail(submissionID uint, userID uint, globalU
 			currentVersionNumber = currentVersion.VersionNumber
 		}
 
+		// submitter_name 由 BFF 层通过 userAggregatorService 聚合填充
 		result["conflict_data"] = map[string]interface{}{
-			"base_content":           baseContent,
-			"their_content":          theirContent,
-			"our_content":            ourContent,
 			"has_conflict":           true,
 			"base_version_number":    baseVersionNumber,
 			"current_version_number": currentVersionNumber,
+			"submitter_name":         "", // 由 BFF 层填充
 		}
 
 		// TODO: 生产环境优化 - 移除或使用结构化日志

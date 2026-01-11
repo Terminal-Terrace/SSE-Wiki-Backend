@@ -81,13 +81,10 @@ message Submission {
 }
 
 message ConflictData {
-  string base_content = 1;
-  string their_content = 2;
-  string our_content = 3;
-  bool has_conflict = 4;
-  int32 base_version_number = 5;
-  int32 current_version_number = 6;
-  string submitter_name = 7;
+  bool has_conflict = 1;
+  int32 base_version_number = 2;
+  int32 current_version_number = 3;
+  string submitter_name = 4;
 }
 
 // ============================================================================
@@ -112,6 +109,8 @@ message ReviewDetail {
   Version proposed_version = 2;
   Version base_version = 3;
   Article article = 4;
+  Version current_version = 5;
+  ConflictData conflict_data = 6;
 }
 
 message GetReviewDetailResponse {

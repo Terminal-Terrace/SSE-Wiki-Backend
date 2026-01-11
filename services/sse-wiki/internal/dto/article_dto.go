@@ -121,9 +121,6 @@ type SubmissionResponse struct {
 
 // ConflictData 冲突数据
 type ConflictData struct {
-	BaseContent          string `json:"base_content"`
-	TheirContent         string `json:"their_content"`
-	OurContent           string `json:"our_content"`
 	HasConflict          bool   `json:"has_conflict"`
 	BaseVersionNumber    int    `json:"base_version_number"`
 	CurrentVersionNumber int    `json:"current_version_number"`

@@ -426,12 +426,32 @@ func (s *ModuleService) AddModerator(moduleID uint, req AddModeratorRequest, use
 		)
 	}
 
-	// 权限检查：只有所有者或系统管理员可以添加协作者
+	// 权限检查：Global_Admin、Owner 或 Admin 协作者可以添加协作者
+	// 根据 README：添加 Moderator 需要 Owner 或 Admin，添加 Admin 需要 Owner
 	if userRole != "admin" && module.OwnerID != userID {
-		return response.NewBusinessError(
-			response.WithErrorCode(response.Forbidden),
-			response.WithErrorMessage("只有模块所有者或系统管理员可以添加协作者"),
-		)
+		// 检查用户是否是模块的 Admin 协作者
+		userModuleRole, _, err := s.moduleRepo.GetUserPermissionWithInheritance(moduleID, userID)
+		if err != nil || userModuleRole != "admin" {
+			// 如果添加的是 Admin，只有 Owner 可以
+			if req.Role == "admin" {
+				return response.NewBusinessError(
+					response.WithErrorCode(response.Forbidden),
+					response.WithErrorMessage("只有模块所有者可以添加 Admin 协作者"),
+				)
+			}
+			// 如果添加的是 Moderator，Owner 或 Admin 可以
+			return response.NewBusinessError(
+				response.WithErrorCode(response.Forbidden),
+				response.WithErrorMessage("只有模块所有者或 Admin 协作者可以添加协作者"),
+			)
+		}
+		// Admin 协作者只能添加 Moderator，不能添加 Admin
+		if req.Role == "admin" {
+			return response.NewBusinessError(
+				response.WithErrorCode(response.Forbidden),
+				response.WithErrorMessage("只有模块所有者可以添加 Admin 协作者"),
+			)
+		}
 	}
 
 	// 防止添加自己为协作者
@@ -487,12 +507,17 @@ func (s *ModuleService) RemoveModerator(moduleID, targetUserID uint, userID uint
 		)
 	}
 
-	// 权限检查：只有模块所有者或系统管理员可以移除协作者
+	// 权限检查：Global_Admin、Owner 或 Admin 协作者可以移除协作者
+	// 根据 README：移除协作者需要 Owner 或 Admin
 	if userRole != "admin" && module.OwnerID != userID {
-		return response.NewBusinessError(
-			response.WithErrorCode(response.Forbidden),
-			response.WithErrorMessage("只有模块所有者或系统管理员可以移除协作者"),
-		)
+		// 检查用户是否是模块的 Admin 协作者
+		userModuleRole, _, err := s.moduleRepo.GetUserPermissionWithInheritance(moduleID, userID)
+		if err != nil || userModuleRole != "admin" {
+			return response.NewBusinessError(
+				response.WithErrorCode(response.Forbidden),
+				response.WithErrorMessage("只有模块所有者或 Admin 协作者可以移除协作者"),
+			)
+		}
 	}
 
 	// 移除协作者
