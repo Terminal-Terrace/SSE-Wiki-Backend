@@ -1,10 +1,14 @@
 package article
 
 import (
+	"context"
+	"fmt"
 	"time"
 
+	"terminal-terrace/sse-wiki/internal/database"
 	"terminal-terrace/sse-wiki/internal/model/article"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -113,11 +117,26 @@ func (r *ArticleRepository) GetUserRole(articleID uint, userID uint) *string {
 	return &collaborator.Role
 }
 
-// IncrementViewCount 增加阅读量
-func (r *ArticleRepository) IncrementViewCount(articleID uint) error {
-	return r.db.Model(&article.Article{}).
-		Where("id = ?", articleID).
-		Update("view_count", gorm.Expr("view_count + 1")).Error
+// IncrementViewCount 增加阅读量（使用 Redis 去重，一个用户只记一次）
+func (r *ArticleRepository) IncrementViewCount(articleID uint, userID uint) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("article:view:%d:%d", articleID, userID)
+
+	// 检查用户是否已浏览过
+	_, err := database.RedisDB.Get(ctx, key).Result()
+	if err == redis.Nil {
+		// 首次浏览，增加计数
+		// 使用原始 SQL，避免触发 GORM 的 updated_at 自动更新
+		updateErr := r.db.Exec("UPDATE articles SET view_count = view_count + 1 WHERE id = ?", articleID).Error
+		if updateErr != nil {
+			return updateErr
+		}
+
+		// 标记已浏览（30天过期）
+		database.RedisDB.Set(ctx, key, "1", 30*24*time.Hour)
+	}
+
+	return nil
 }
 
 // AddCollaborator 添加协作者
