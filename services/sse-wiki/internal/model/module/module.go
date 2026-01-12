@@ -6,7 +6,7 @@ import "time"
 type Module struct {
 	ID         uint      `gorm:"primaryKey" json:"id"`
 	ModuleName string    `gorm:"type:varchar(100);not null" json:"module_name"`
-	Description string    `gorm:"type:text;default:null" json:"description"`
+	Description *string   `gorm:"type:text;default:null" json:"description"`
 	ParentID   *uint     `gorm:"index;default:null" json:"parent_id"` // NULL表示顶级模块
 	OwnerID    uint      `gorm:"not null;index" json:"owner_id"`
 	CreatedAt  time.Time `json:"created_at"`

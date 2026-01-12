@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"strings"
 
 	"terminal-terrace/sse-wiki/internal/database"
 	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
@@ -59,11 +60,16 @@ func (s *ModuleServiceImpl) GetModule(ctx context.Context, req *pb.GetModuleRequ
 		parentID = uint32(*mod.ParentID)
 	}
 
+	description := ""
+	if mod.Description != nil {
+		description = *mod.Description
+	}
+
 	return &pb.GetModuleResponse{
 		Module: &pb.Module{
 			Id:          uint32(mod.ID),
 			Name:        mod.ModuleName,
-			Description: mod.Description,
+			Description: description,
 			ParentId:    parentID,
 			OwnerId:     uint32(mod.OwnerID),
 			CreatedAt:   mod.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -95,9 +101,16 @@ func (s *ModuleServiceImpl) CreateModule(ctx context.Context, req *pb.CreateModu
 	// 从 JWT 获取用户信息
 	user := GetUserFromContext(ctx)
 
+	var descPtr *string
+	if req.Description != nil {
+		if trimmed := strings.TrimSpace(*req.Description); trimmed != "" {
+			descPtr = &trimmed
+		}
+	}
+
 	createReq := module.CreateModuleRequest{
 		Name:        req.Name,
-		Description: req.Description,
+		Description: descPtr,
 	}
 	if req.ParentId > 0 {
 		parentID := uint(req.ParentId)
@@ -119,9 +132,16 @@ func (s *ModuleServiceImpl) UpdateModule(ctx context.Context, req *pb.UpdateModu
 	// 从 JWT 获取用户信息
 	user := GetUserFromContext(ctx)
 
+	var descPtr *string
+	if req.Description != nil {
+		if trimmed := strings.TrimSpace(*req.Description); trimmed != "" {
+			descPtr = &trimmed
+		}
+	}
+
 	updateReq := module.UpdateModuleRequest{
 		Name:        req.Name,
-		Description: req.Description,
+		Description: descPtr,
 	}
 	if req.ParentId > 0 {
 		parentID := uint(req.ParentId)
@@ -273,10 +293,16 @@ func convertModule(mod interface{}) *pb.Module {
 		if m.ParentID != nil {
 			parentID = uint32(*m.ParentID)
 		}
+
+		description := ""
+		if m.Description != nil {
+			description = *m.Description
+		}
+
 		return &pb.Module{
 			Id:          uint32(m.ID),
 			Name:        m.ModuleName,
-			Description: m.Description,
+			Description: description,
 			ParentId:    parentID,
 			OwnerId:     uint32(m.OwnerID),
 			CreatedAt:   m.CreatedAt.Format("2006-01-02 15:04:05"),
