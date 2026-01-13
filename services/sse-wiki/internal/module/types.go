@@ -13,16 +13,16 @@ type ModuleTreeNode struct {
 
 // CreateModuleRequest 创建模块请求
 type CreateModuleRequest struct {
-	Name     string `json:"name" binding:"required,min=1,max=100"`
-	Description string `json:"description" binding:"required,min=1,max=512"`
-	ParentID *uint  `json:"parent_id"`
+	Name        string  `json:"name" binding:"required,min=1,max=100"`
+	Description *string `json:"description" binding:"omitempty,max=512"`
+	ParentID    *uint   `json:"parent_id"`
 }
 
 // UpdateModuleRequest 更新模块请求
 type UpdateModuleRequest struct {
-	Name     string `json:"name" binding:"required,min=1,max=100"`
-	Description string `json:"description" binding:"required,min=1,max=512"`
-	ParentID *uint  `json:"parent_id"`
+	Name        string  `json:"name" binding:"required,min=1,max=100"`
+	Description *string `json:"description" binding:"omitempty,max=512"`
+	ParentID    *uint   `json:"parent_id"`
 }
 
 // BreadcrumbNode 面包屑节点

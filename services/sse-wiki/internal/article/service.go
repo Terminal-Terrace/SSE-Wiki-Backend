@@ -574,8 +574,8 @@ func (s *ArticleService) GetArticle(articleID uint, userID uint, globalUserRole 
 		}
 	}
 
-	// 增加阅读量
-	s.articleRepo.IncrementViewCount(articleID)
+	// 增加阅读量（使用 Redis 去重，一个用户只记一次）
+	s.articleRepo.IncrementViewCount(articleID, userID)
 
 	// 计算 is_author 和 can_delete 字段（需求 7.2, 7.3, 7.5）
 	isAuthor := art.CreatedBy == userID

@@ -1,6 +1,8 @@
 package module
 
 import (
+	"strings"
+
 	"terminal-terrace/response"
 	moduleModel "terminal-terrace/sse-wiki/internal/model/module"
 
@@ -78,10 +80,15 @@ func (s *ModuleService) buildTreeWithRoles(modules []moduleModel.Module, parentI
 			// isModerator 为 true 表示用户有任何权限
 			isModerator := role != ""
 
+			description := ""
+			if module.Description != nil {
+				description = *module.Description
+			}
+
 			node := ModuleTreeNode{
 				ID:          module.ID,
 				Name:        module.ModuleName,
-				Description: module.Description,
+				Description: description,
 				OwnerID:     module.OwnerID,
 				IsModerator: isModerator,
 				Role:        role,
@@ -175,9 +182,15 @@ func (s *ModuleService) CreateModule(req CreateModuleRequest, userID uint, userR
 	// 创建模块
 	module := &moduleModel.Module{
 		ModuleName:  req.Name,
-		Description: req.Description,
 		ParentID:    req.ParentID,
 		OwnerID:     userID,
+	}
+
+	if req.Description != nil {
+		trimmed := strings.TrimSpace(*req.Description)
+		if trimmed != "" {
+			module.Description = &trimmed
+		}
 	}
 
 	if err := s.moduleRepo.CreateModule(module); err != nil {
@@ -289,8 +302,15 @@ func (s *ModuleService) UpdateModule(id uint, req UpdateModuleRequest, userID ui
 	}
 
 	// 更新模块
-	module.ModuleName  = req.Name
-	module.Description = req.Description
+	module.ModuleName = req.Name
+	if req.Description != nil {
+		trimmed := strings.TrimSpace(*req.Description)
+		if trimmed == "" {
+			module.Description = nil
+		} else {
+			module.Description = &trimmed
+		}
+	}
 	// 只有前端明确传了parent_id时才更新（shouldUpdateParentID标志）
 	if shouldUpdateParentID {
 		module.ParentID = req.ParentID

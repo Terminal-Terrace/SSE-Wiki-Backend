@@ -82,7 +82,7 @@ message GetBreadcrumbsResponse {
 
 message CreateModuleRequest {
   string name = 1;
-  string description = 2;
+  optional string description = 2;
   uint32 parent_id = 3;  // 0 表示顶级模块
   
 }
@@ -94,7 +94,7 @@ message CreateModuleResponse {
 message UpdateModuleRequest {
   uint32 id = 1;
   string name = 2;
-  string description = 3;
+  optional string description = 3;
   uint32 parent_id = 4;  // 0 表示顶级模块
 }
 
